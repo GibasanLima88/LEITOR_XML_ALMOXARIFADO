@@ -1,0 +1,42 @@
+{
+    "grupos": [
+        "20(NAO USAR) Diversos (icms)",
+        "40(nao usar)",
+        "60*Diversos (NAO USAR)",
+        "Aves e Ovos",
+        "Beb. Ñ Alcool",
+        "Bebidas Alcoolicas",
+        "Carnes",
+        "Cereais e Sacarias",
+        "Cervejas",
+        "Chocolate e doces",
+        "comodato",
+        "CONFRATENIZAÇÃO",
+        "Conservas",
+        "Frios e Laticinios",
+        "Governanca",
+        "Hortifruti",
+        "Maquinas e equipamentos",
+        "Massas",
+        "Mat. De Cozinha e Loucas",
+        "Material de Escritorio",
+        "Material de Limpeza",
+        "Material de Manutencao",
+        "Moveis e utensilios",
+        "Paes, Biscoitos",
+        "Restaurante (Uso e consumo)",
+        "Vinhos/Champagnes"
+    ],
+    "grupos_especiais": [
+        "comodato",
+        "CONFRATENIZAÇÃO",
+        "Governanca",
+        "Maquinas e equipamentos",
+        "Mat. De Cozinha e Loucas",
+        "Material de Escritorio",
+        "Material de Limpeza",
+        "Material de Manutencao",
+        "Moveis e utensilios",
+        "Restaurante (Uso e consumo)"
+    ]
+}
