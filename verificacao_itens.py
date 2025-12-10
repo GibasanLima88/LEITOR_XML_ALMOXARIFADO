@@ -1,5 +1,22 @@
 import pyautogui as py
 import time
+import json
+import os
+from tkinter import messagebox
+
+def carregar_regras(perfil="verificacao_padrao"):
+    caminho_json = "regras_fiscais.json"
+    if not os.path.exists(caminho_json):
+        messagebox.showerror("Erro", f"Arquivo de regras '{caminho_json}' não encontrado!")
+        return []
+    
+    try:
+        with open(caminho_json, "r", encoding="utf-8") as f:
+            dados = json.load(f)
+            return dados.get(perfil, [])
+    except Exception as e:
+        messagebox.showerror("Erro", f"Erro ao ler regras fiscais: {e}")
+        return []
 
 def clicar_imagem(imagem, timeout=5, offset_x=0, offset_y=0, clicks=1):
     inicio = time.time()
@@ -21,14 +38,18 @@ def verificar_itens(ncm_entry, combo_desembolso, entry_cfop_widgets, entry_cst_w
     py.PAUSE = 0.2
     desembolso2 = combo_desembolso.get()  # Obtenha o valor selecionado no combobox
     
-    # Localiza a imagem na tela
+    # Carregar regras do perfil padrão
+    regras = carregar_regras("verificacao_padrao")
+    if not regras:
+        return # Aborta se não houver regras
+
     # Localiza a imagem na tela
     if clicar_imagem('seta.png'):
         if checar_interrupcao_callback(): return
         time.sleep(1)
         if checar_interrupcao_callback(): return
     
-    py.press('up', presses=50)  # Pressiona a seta para cima 4 vezes
+    py.press('up', presses=60)  # Pressiona a seta para cima 4 vezes
     if checar_interrupcao_callback(): return
     time.sleep(2)
     if checar_interrupcao_callback(): return
@@ -43,348 +64,90 @@ def verificar_itens(ncm_entry, combo_desembolso, entry_cfop_widgets, entry_cst_w
         if clicar_imagem('seta.png', clicks=2):
             if checar_interrupcao_callback():
                 return
-            time.sleep(0.4)
+            time.sleep(0.3)
             py.press('tab', presses=9)
             time.sleep(0.1)
             if checar_interrupcao_callback():
                 return
-            if cfop_valor in ['5101', '5102', '5106']:    
-                time.sleep(0.1)
-                if checar_interrupcao_callback(): return
-                py.write('1102')
-                if checar_interrupcao_callback():
-                    return
-                time.sleep(0.1)
-                py.press('tab', presses=3)
-                if checar_interrupcao_callback():
-                    return
-                py.write('0')
-                time.sleep(0.1)
-                if checar_interrupcao_callback():
-                    return
-                if cst_valor == '000':
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    if checar_interrupcao_callback():
-                        return
-                    py.write('00')
-                    if checar_interrupcao_callback(): return
-                    time.sleep(0.2)
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('49')
-                    if checar_interrupcao_callback():
-                        return
-                    time.sleep(1)
-                    if checar_interrupcao_callback(): return
-                    clicar_rateio_callback(desembolso2)
-                    if checar_interrupcao_callback():
-                        return
-                if cst_valor == '020':
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    if checar_interrupcao_callback():
-                        return
-                    py.write('20')
-                    if checar_interrupcao_callback(): return
-                    time.sleep(0.2)
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('49')
-                    if checar_interrupcao_callback():
-                        return
-                    time.sleep(1)
-                    if checar_interrupcao_callback(): return
-                    clicar_rateio_callback(desembolso2)
-                    if checar_interrupcao_callback():
-                        return
-                if cst_valor == '040':
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    if checar_interrupcao_callback():
-                        return
-                    time.sleep(1)
-                    if checar_interrupcao_callback(): return
-                    py.write('40')
-                    if checar_interrupcao_callback(): return
-                    time.sleep(0.2)
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('49')
-                    if checar_interrupcao_callback():
-                        return
-                    time.sleep(1)
-                    if checar_interrupcao_callback(): return
-                    clicar_rateio_callback(desembolso2)     
-                    if checar_interrupcao_callback():
-                        return
-                if cst_valor in [ '101','102','300','400','051']:
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('40')
-                    if checar_interrupcao_callback():
-                        return
-                    time.sleep(0.2)
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('49')
-                    if checar_interrupcao_callback():
-                        return
-                    time.sleep(1)
-                    if checar_interrupcao_callback(): return
-                    clicar_rateio_callback(desembolso2)
-                    if checar_interrupcao_callback():
-                        return
-            if cfop_valor in ['5556']:    
-                time.sleep(0.1)
-                if checar_interrupcao_callback(): return
-                py.write('1556')
-                time.sleep(0.1)
-                if checar_interrupcao_callback():
-                        return
-                py.press('tab', presses=3)
-                if checar_interrupcao_callback(): return
-                py.write('0')
-                if checar_interrupcao_callback():
-                        return
-                time.sleep(0.1)
             
-                if cst_valor in ['000', '020','040','060', '101','102','500']:
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    if checar_interrupcao_callback():
-                        return
-                    py.write('90')
-                    if checar_interrupcao_callback(): return
-                    time.sleep(0.2)
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('98')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('98')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('49')
-                    if checar_interrupcao_callback():
-                        return
-                    time.sleep(1)
-                    if checar_interrupcao_callback(): return
-                    clicar_rateio_callback(desembolso2)   
-                    if checar_interrupcao_callback():
-                        return
-            if cfop_valor in ['6101','6102','6105','6107']:
-                time.sleep(0.1)
-                if checar_interrupcao_callback(): return
-                py.write('2102')
-                time.sleep(0.1)
-                if checar_interrupcao_callback():
-                        return
-                py.press('tab', presses=3)
-                if checar_interrupcao_callback(): return
-                py.write('0')
-                if checar_interrupcao_callback():
-                        return
-                time.sleep(0.1)
-
-                if cst_valor == '000':
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    if checar_interrupcao_callback():
-                        return
-                    py.write('00')
-                    if checar_interrupcao_callback(): return
-                    time.sleep(0.2)
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('49')
-                    if checar_interrupcao_callback():
-                        return
-                    time.sleep(1)
-                    if checar_interrupcao_callback(): return
-                    clicar_rateio_callback(desembolso2)
-                    if checar_interrupcao_callback():
-                        return
-                if cst_valor in ['101','102']:
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    if checar_interrupcao_callback():
-                        return
-                    py.write('40')
-                    if checar_interrupcao_callback(): return
-                    time.sleep(0.2)
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('49')
-                    if checar_interrupcao_callback():
-                        return
-                    time.sleep(1)
-                    if checar_interrupcao_callback(): return
-                    clicar_rateio_callback(desembolso2)
-                    if checar_interrupcao_callback():
-                        return
-            if cfop_valor in ['6401','6403']:
-                time.sleep(0.1)
-                if checar_interrupcao_callback(): return
-                py.write('2403')
-                if checar_interrupcao_callback():
-                        return
-                time.sleep(0.1)
-                py.press('tab', presses=3)
-                if checar_interrupcao_callback(): return
-                py.write('0')
-                if checar_interrupcao_callback():
-                        return
-                time.sleep(0.1)
-                if checar_interrupcao_callback():
-                        return
-                if cst_valor in ['010', '060', '070', '500']:
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    if checar_interrupcao_callback():
-                        return
-                    py.write('60')
-                    if checar_interrupcao_callback(): return
-                    time.sleep(0.2)
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('49')
-                    if checar_interrupcao_callback():
-                        return
-                    time.sleep(1)
-                    if checar_interrupcao_callback(): return
-                    clicar_rateio_callback(desembolso2)   
-                    if checar_interrupcao_callback():
-                        return
-            if cfop_valor in ['5115','5401','5403','5405']:    
-                time.sleep(0.1)
-                if checar_interrupcao_callback(): return
-                py.write('1403')
-                if checar_interrupcao_callback():
-                        return
-                time.sleep(0.1)
-                py.press('tab', presses=3)
-                if checar_interrupcao_callback(): return
-                py.write('0')
-                if checar_interrupcao_callback():
-                        return
-                time.sleep(0.1)
-                if cst_valor in ['010','030', '060', '070','201', '500']:
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('60')
-                    if checar_interrupcao_callback():
-                        return
+            # --- INICIO DO MOTOR DE REGRAS ---
+            regra_encontrada = False
+            for regra in regras:
+                condicoes = regra.get("entrada", {})
+                
+                # Verifica se CFOP e CST correspondem
+                cfop_match = cfop_valor in condicoes.get("cfop", [])
+                cst_match = cst_valor in condicoes.get("cst", [])
+                
+                if cfop_match and cst_match:
+                    print(f"Regra aplicada: CFOP {cfop_valor} / CST {cst_valor}")
+                    saida = regra.get("saida", {})
+                    
                     time.sleep(0.1)
                     if checar_interrupcao_callback(): return
+                    
+                    # Digita CFOP de Saída
+                    if "cfop" in saida:
+                        py.write(saida["cfop"])
+                        if checar_interrupcao_callback(): return
+                    
+                    time.sleep(0.1)
+                    py.press('tab', presses=3)
+                    if checar_interrupcao_callback(): return
+                    
+                    # Digita '0' (Padrão)
+                    py.write('0')
+                    time.sleep(0.1)
+                    if checar_interrupcao_callback(): return
+                    
+                    # Lógica de Tabs e CST de Saída
                     py.press('tab')
-                    if checar_interrupcao_callback():
-                        return
-                    py.write('73')
+                    if checar_interrupcao_callback(): return
+                    
+                    # Se tiver CST de saída, digita
+                    if "cst" in saida:
+                         py.write(saida["cst"])
+                         if checar_interrupcao_callback(): return
+                    
+                    time.sleep(0.2)
                     if checar_interrupcao_callback(): return
                     py.press('tab')
-                    if checar_interrupcao_callback():
-                        return
-                    py.write('73')
                     if checar_interrupcao_callback(): return
+                    
+                    # PIS
+                    if "pis" in saida:
+                        py.write(saida["pis"])
+                        if checar_interrupcao_callback(): return
                     py.press('tab')
-                    if checar_interrupcao_callback():
-                        return
-                    py.write('49')
                     if checar_interrupcao_callback(): return
-                    clicar_rateio_callback(desembolso2)  # Passa o valor de desembolso
-                    if checar_interrupcao_callback():
-                        return
+                    
+                    # COFINS
+                    if "cofins" in saida:
+                        py.write(saida["cofins"])
+                        if checar_interrupcao_callback(): return
+                    py.press('tab')
+                    if checar_interrupcao_callback(): return
+                    
+                    # IPI
+                    if "ipi" in saida:
+                        py.write(saida["ipi"])
+                        if checar_interrupcao_callback(): return
+                    
+                    time.sleep(1)
+                    if checar_interrupcao_callback(): return
+                    
+                    # Clicar Rateio
+                    clicar_rateio_callback(desembolso2)
+                    if checar_interrupcao_callback(): return
+                    
+                    regra_encontrada = True
+                    break # Sai do loop de regras e vai para confirmar/próximo item
+
+            if not regra_encontrada:
+                print(f"Nenhuma regra encontrada para CFOP {cfop_valor} e CST {cst_valor}")
+            
+            # --- FIM DO MOTOR DE REGRAS ---
+
         if clicar_imagem('confirmar2.png'):
             time.sleep(1.5)
             if checar_interrupcao_callback():

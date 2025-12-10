@@ -1,11 +1,50 @@
 import pyautogui as py
 import time
+import json
+import os
+from tkinter import messagebox
+
+def carregar_regras(perfil="verificacao_simples"):
+    caminho_json = "regras_fiscais.json"
+    if not os.path.exists(caminho_json):
+        messagebox.showerror("Erro", f"Arquivo de regras '{caminho_json}' não encontrado!")
+        return []
+    
+    try:
+        with open(caminho_json, "r", encoding="utf-8") as f:
+            dados = json.load(f)
+            return dados.get(perfil, [])
+    except Exception as e:
+        messagebox.showerror("Erro", f"Erro ao ler regras fiscais: {e}")
+        return []
+
+# Função para clicar em uma imagem na tela
+def clicar_imagem(imagem, timeout=5, offset_x=0, offset_y=0, clicks=1):
+    inicio = time.time()
+    while time.time() - inicio < timeout:
+        try:
+            posicao = py.locateCenterOnScreen(imagem, confidence=0.8)
+            if posicao:
+                py.click(posicao.x + offset_x, posicao.y + offset_y, clicks=clicks)
+                return True
+        except Exception:
+            pass
+        time.sleep(0.5)
+    
+    # Fallback se não encontrar a imagem
+    print(f"Imagem {imagem} não encontrada.")
+    return False
 
 
 def verificar_itens_simples(ncm_entry, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao_callback, clicar_rateio_callback):
-    py.PAUSE = 1
+    py.PAUSE = 0.3
     desembolso2 = combo_desembolso.get()  # Obtenha o valor selecionado no combobox
     
+    # Carregar regras do perfil simples
+    regras = carregar_regras("verificacao_simples")
+    if not regras:
+        return
+
     # Localiza a imagem na tela
     if clicar_imagem('seta.png'):
         time.sleep(1)
@@ -23,13 +62,7 @@ def verificar_itens_simples(ncm_entry, combo_desembolso, entry_cfop_widgets, ent
         if checar_interrupcao_callback():
             return
         # Localiza a imagem na tela
-        localizacao = py.locateOnScreen('seta.png', confidence=0.8)
-        if checar_interrupcao_callback():
-            return
-        # Verifica se a imagem foi encontrada
-        if localizacao:
-            centro = py.center(localizacao)
-            py.click(centro, clicks=2)
+        if clicar_imagem('seta.png', clicks=2):
             if checar_interrupcao_callback(): return
             time.sleep(0.4)
             if checar_interrupcao_callback(): return
@@ -38,229 +71,90 @@ def verificar_itens_simples(ncm_entry, combo_desembolso, entry_cfop_widgets, ent
             time.sleep(0.1)
             if checar_interrupcao_callback():
                 return
-            if cfop_valor in ['5101', '5102', '5106']:    
-                time.sleep(0.1)
-                py.write('1102')
-                if checar_interrupcao_callback():
-                    return
-                time.sleep(0.1)
-                if checar_interrupcao_callback(): return
-                py.press('tab', presses=3)
-                if checar_interrupcao_callback(): return
-                py.write('0')
-                if checar_interrupcao_callback(): return
-                time.sleep(0.1)
-                if checar_interrupcao_callback():
-                    return
-    
-                    
-                if cst_valor in ['000','020','040', '101','102','300','400']:
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    if checar_interrupcao_callback():
-                        return
-                    py.write('40')
-                    if checar_interrupcao_callback(): return
-                    time.sleep(0.2)
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('49')
-                    if checar_interrupcao_callback():
-                        return
-                    time.sleep(1)
-                    if checar_interrupcao_callback(): return
-                    clicar_rateio_callback(desembolso2)
-                    if checar_interrupcao_callback():
-                        return
-            if cfop_valor in ['5556']:    
-                time.sleep(0.1)
-                if checar_interrupcao_callback():
-                    return
-                py.write('1556')
-                if checar_interrupcao_callback(): return
-                time.sleep(0.1)
-                if checar_interrupcao_callback():
-                    return
-                py.press('tab', presses=3)
-                if checar_interrupcao_callback(): return
-                py.write('0')
-                if checar_interrupcao_callback(): return
-                if checar_interrupcao_callback():
-                    return
-                time.sleep(0.1)
             
-                if cst_valor in ['000', '020','040','060', '101','102', '500']:
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    if checar_interrupcao_callback():
-                        return
-                    py.write('90')
-                    if checar_interrupcao_callback(): return
-                    time.sleep(0.2)
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('98')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('98')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('49')
-                    if checar_interrupcao_callback():
-                        return
-                    time.sleep(1)
-                    if checar_interrupcao_callback(): return
-                    clicar_rateio_callback(desembolso2)   
-                    if checar_interrupcao_callback():
-                        return
-            if cfop_valor in ['6101','6102','6105','6107']:
-                time.sleep(0.1)
-                py.write('2102')
-                if checar_interrupcao_callback(): return
-                if checar_interrupcao_callback():
-                    return
-                time.sleep(0.1)
-                py.press('tab', presses=3)
-                py.write('0')
-                time.sleep(0.1)
-                if checar_interrupcao_callback():
-                    return
-                if cst_valor in ['000','020','040', '101','102','300']:
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    if checar_interrupcao_callback():
-                        return
-                    py.write('40')
-                    if checar_interrupcao_callback(): return
-                    time.sleep(0.2)
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('49')
-                    if checar_interrupcao_callback():
-                        return
-                    time.sleep(1)
-                    if checar_interrupcao_callback(): return
-                    clicar_rateio_callback(desembolso2)
-
+            # --- INICIO DO MOTOR DE REGRAS ---
+            regra_encontrada = False
+            for regra in regras:
+                condicoes = regra.get("entrada", {})
+                
+                # Verifica se CFOP e CST correspondem
+                cfop_match = cfop_valor in condicoes.get("cfop", [])
+                cst_match = cst_valor in condicoes.get("cst", [])
+                
+                if cfop_match and cst_match:
+                    print(f"Regra aplicada: CFOP {cfop_valor} / CST {cst_valor}")
+                    saida = regra.get("saida", {})
                     
-            if cfop_valor == '6401':
-                time.sleep(0.1)
-                py.write('2403')
-                if checar_interrupcao_callback(): return
-                if checar_interrupcao_callback():
-                    return
-                time.sleep(0.1)
-                py.press('tab', presses=3)
-                if checar_interrupcao_callback(): return
-                py.write('0')
-                if checar_interrupcao_callback(): return
-                if checar_interrupcao_callback():
-                    return
-                time.sleep(0.1)
-
-                if cst_valor in ['010', '060', '070', '500']:
-                    py.press('tab')
+                    time.sleep(0.1)
                     if checar_interrupcao_callback(): return
-                    if checar_interrupcao_callback():
-                        return
-                    py.write('60')
-                    if checar_interrupcao_callback(): return
-                    time.sleep(0.2)
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
-                    py.press('tab')
-                    if checar_interrupcao_callback(): return
-                    py.write('49')
-                    if checar_interrupcao_callback():
-                        return
-                    time.sleep(1)
-                    if checar_interrupcao_callback(): return
-                    clicar_rateio_callback(desembolso2)   
                     
-            if cfop_valor in ['5115','5401','5403','5405']:    
-                time.sleep(0.1)
-                if checar_interrupcao_callback():
-                    return
-                py.write('1403')
-                if checar_interrupcao_callback(): return
-                time.sleep(0.1)
-                if checar_interrupcao_callback():
-                    return
-                py.press('tab', presses=3)
-                if checar_interrupcao_callback(): return
-                py.write('0')
-                if checar_interrupcao_callback(): return
-                if checar_interrupcao_callback():
-                    return
-                time.sleep(0.1)
-                if cst_valor in ['010','030', '060', '070','201','500']:
-                    py.press('tab')
+                    # Digita CFOP de Saída
+                    if "cfop" in saida:
+                        py.write(saida["cfop"])
+                        if checar_interrupcao_callback(): return
+                    
+                    time.sleep(0.1)
                     if checar_interrupcao_callback(): return
-                    if checar_interrupcao_callback():
-                        return
-                    py.write('60')
+                    py.press('tab', presses=3)
+                    if checar_interrupcao_callback(): return
+                    
+                    # Digita '0' (Padrão)
+                    py.write('0')
                     if checar_interrupcao_callback(): return
                     time.sleep(0.1)
+                    if checar_interrupcao_callback(): return
+                    
+                    # Lógica de Tabs e CST de Saída
+                    py.press('tab')
+                    if checar_interrupcao_callback(): return
+                     
+                    if checar_interrupcao_callback(): return
+                    
+                    # Se tiver CST de saída, digita
+                    if "cst" in saida:
+                         py.write(saida["cst"])
+                         if checar_interrupcao_callback(): return
+
+                    if checar_interrupcao_callback(): return
+                    time.sleep(0.2)
                     if checar_interrupcao_callback():
                         return
                     py.press('tab')
                     if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
+                    
+                    # PIS
+                    if "pis" in saida:
+                        py.write(saida["pis"])
+                        if checar_interrupcao_callback(): return
                     py.press('tab')
                     if checar_interrupcao_callback(): return
-                    py.write('73')
-                    if checar_interrupcao_callback():
-                        return
+                    
+                    # COFINS
+                    if "cofins" in saida:
+                        py.write(saida["cofins"])
+                        if checar_interrupcao_callback(): return
                     py.press('tab')
                     if checar_interrupcao_callback(): return
-                    py.write('49')
-                    if checar_interrupcao_callback():
-                        return
+                    
+                    # IPI
+                    if "ipi" in saida:
+                        py.write(saida["ipi"])
+                        if checar_interrupcao_callback(): return
+                    
+                    time.sleep(1)
                     if checar_interrupcao_callback(): return
-                    clicar_rateio_callback(desembolso2)  # Passa o valor de desembolso
+                    
+                    # Clicar Rateio
+                    clicar_rateio_callback(desembolso2)
                     if checar_interrupcao_callback(): return
+                    
+                    regra_encontrada = True
+                    break # Sai do loop de regras
+
+            if not regra_encontrada:
+                 print(f"Nenhuma regra encontrada para CFOP {cfop_valor} e CST {cst_valor}")
+            
+            # --- FIM DO MOTOR DE REGRAS ---
             
         if clicar_imagem('confirmar2.png'):
             if checar_interrupcao_callback(): return
@@ -275,22 +169,4 @@ def verificar_itens_simples(ncm_entry, combo_desembolso, entry_cfop_widgets, ent
             time.sleep(0.4)    
             if checar_interrupcao_callback(): return
             py.moveTo(x=527, y=360) 
-            if checar_interrupcao_callback(): return 
-
-
-# Função para clicar em uma imagem na tela
-def clicar_imagem(imagem, timeout=5, offset_x=0, offset_y=0):
-    inicio = time.time()
-    while time.time() - inicio < timeout:
-        try:
-            posicao = py.locateCenterOnScreen(imagem, confidence=0.8)
-            if posicao:
-                py.click(posicao.x + offset_x, posicao.y + offset_y)
-                return True
-        except Exception:
-            pass
-        time.sleep(0.5)
-    
-    # Fallback se não encontrar a imagem
-    print(f"Imagem {imagem} não encontrada.")
-    return False
+            if checar_interrupcao_callback(): return

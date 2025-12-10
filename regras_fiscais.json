@@ -1,0 +1,469 @@
+{
+    "verificacao_padrao": [
+        {
+            "entrada": {
+                "cfop": [
+                    "5101",
+                    "5102",
+                    "5106"
+                ],
+                "cst": [
+                    "000"
+                ]
+            },
+            "saida": {
+                "cfop": "1102",
+                "cst": "00",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": false,
+                "clicar_integral": false
+            }
+        },
+        {
+            "entrada": {
+                "cfop": [
+                    "5101",
+                    "5102",
+                    "5106"
+                ],
+                "cst": [
+                    "020"
+                ]
+            },
+            "saida": {
+                "cfop": "1102",
+                "cst": "20",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": false,
+                "clicar_integral": false
+            }
+        },
+        {
+            "entrada": {
+                "cfop": [
+                    "5101",
+                    "5102",
+                    "5106"
+                ],
+                "cst": [
+                    "040"
+                ]
+            },
+            "saida": {
+                "cfop": "1102",
+                "cst": "40",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": false,
+                "clicar_integral": false
+            }
+        },
+        {
+            "entrada": {
+                "cfop": [
+                    "5101",
+                    "5102",
+                    "5106"
+                ],
+                "cst": [
+                    "101",
+                    "102",
+                    "300",
+                    "400",
+                    "051"
+                ]
+            },
+            "saida": {
+                "cfop": "1102",
+                "cst": "40",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": false,
+                "clicar_integral": false
+            }
+        },
+        {
+            "entrada": {
+                "cfop": [
+                    "5556"
+                ],
+                "cst": [
+                    "000",
+                    "020",
+                    "040",
+                    "060",
+                    "101",
+                    "102",
+                    "500"
+                ]
+            },
+            "saida": {
+                "cfop": "1556",
+                "cst": "90",
+                "pis": "98",
+                "cofins": "98",
+                "ipi": "49",
+                "clicar_isento": false,
+                "clicar_integral": false
+            }
+        },
+        {
+            "entrada": {
+                "cfop": [
+                    "6101",
+                    "6102",
+                    "6105",
+                    "6107"
+                ],
+                "cst": [
+                    "000"
+                ]
+            },
+            "saida": {
+                "cfop": "2102",
+                "cst": "00",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": false,
+                "clicar_integral": false
+            }
+        },
+        {
+            "entrada": {
+                "cfop": [
+                    "6101",
+                    "6102",
+                    "6105",
+                    "6107"
+                ],
+                "cst": [
+                    "101",
+                    "102"
+                ]
+            },
+            "saida": {
+                "cfop": "2102",
+                "cst": "40",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": false,
+                "clicar_integral": false
+            }
+        },
+        {
+            "entrada": {
+                "cfop": [
+                    "6401",
+                    "6403"
+                ],
+                "cst": [
+                    "010",
+                    "060",
+                    "070",
+                    "500"
+                ]
+            },
+            "saida": {
+                "cfop": "2403",
+                "cst": "60",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": false,
+                "clicar_integral": false
+            }
+        },
+        {
+            "entrada": {
+                "cfop": [
+                    "5115",
+                    "5401",
+                    "5403",
+                    "5405"
+                ],
+                "cst": [
+                    "010",
+                    "030",
+                    "060",
+                    "070",
+                    "201",
+                    "500"
+                ]
+            },
+            "saida": {
+                "cfop": "1403",
+                "cst": "60",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49"
+            }
+        }
+    ],
+    "verificacao_simples": [
+        {
+            "entrada": {
+                "cfop": ["5101", "5102", "5106"],
+                "cst": ["000", "020", "040", "101", "102", "300", "400"]
+            },
+            "saida": {
+                "cfop": "1102",
+                "cst": "40",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49"
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["5556"],
+                "cst": ["000", "020", "040", "060", "101", "102", "500"]
+            },
+            "saida": {
+                "cfop": "1556",
+                "cst": "90",
+                "pis": "98",
+                "cofins": "98",
+                "ipi": "49"
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["6101", "6102", "6105", "6107"],
+                "cst": ["000", "020", "040", "101", "102", "300"]
+            },
+            "saida": {
+                "cfop": "2102",
+                "cst": "40",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49"
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["6401"],
+                "cst": ["010", "060", "070", "500"]
+            },
+            "saida": {
+                "cfop": "2403",
+                "cst": "60",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49"
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["5115", "5401", "5403", "5405"],
+                "cst": ["010", "030", "060", "070", "201", "500"]
+            },
+            "saida": {
+                "cfop": "1403",
+                "cst": "60",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49"
+            }
+        }
+    ],
+    "verificacao_pis_cofins": [
+        {
+            "entrada": {
+                "cfop": ["5115", "5401", "5403", "5405"],
+                "cst": ["010", "030", "060", "070", "201", "500"]
+            },
+            "saida": {
+                "cfop": "1403",
+                "cst": "60",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": true
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["6115", "6401", "6403", "6405"],
+                "cst": ["010", "060", "070", "201", "500"]
+            },
+            "saida": {
+                "cfop": "2403",
+                "cst": "60",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": true
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["5556"],
+                "cst": ["000", "010", "020", "060", "070", "201", "500", "040", "101", "102", "300", "400", "051"]
+            },
+            "saida": {
+                "cfop": "1556",
+                "cst": "90",
+                "pis": "98",
+                "cofins": "98",
+                "ipi": "49",
+                "clicar_isento": true
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["5101", "5102", "5106"],
+                "cst": ["040", "101", "102", "300", "400", "051"]
+            },
+            "saida": {
+                "cfop": "1102",
+                "cst": "40",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": true
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["6101", "6102", "6106"],
+                "cst": ["040", "101", "102", "300", "400", "051"]
+            },
+            "saida": {
+                "cfop": "2102",
+                "cst": "40",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": true
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["5101", "5102", "5106"],
+                "cst": ["000"],
+                "desembolso": "cafe da manha"
+            },
+            "saida": {
+                "cfop": "1102",
+                "cst": "00",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": true
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["5101", "5102", "5106"],
+                "cst": ["000"],
+                "desembolso": "restaurante"
+            },
+            "saida": {
+                "cfop": "1102",
+                "cst": "00",
+                "pis": "50",
+                "cofins": "50",
+                "ipi": "49",
+                "clicar_integral": true
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["5101", "5102", "5106"],
+                "cst": ["020"],
+                "desembolso": "cafe da manha"
+            },
+            "saida": {
+                "cfop": "1102",
+                "cst": "20",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": true
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["5101", "5102", "5106"],
+                "cst": ["020"],
+                "desembolso": "restaurante"
+            },
+            "saida": {
+                "cfop": "1102",
+                "cst": "20",
+                "pis": "50",
+                "cofins": "50",
+                "ipi": "49",
+                "clicar_integral": true
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["6101", "6102", "6106"],
+                "cst": ["000"],
+                "desembolso": "cafe da manha"
+            },
+            "saida": {
+                "cfop": "2102",
+                "cst": "00",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": true
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["6101", "6102", "6106"],
+                "cst": ["000"],
+                "desembolso": "restaurante"
+            },
+            "saida": {
+                "cfop": "2102",
+                "cst": "00",
+                "pis": "50",
+                "cofins": "50",
+                "ipi": "49",
+                "clicar_integral": true
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["6101", "6102", "6106"],
+                "cst": ["020"],
+                "desembolso": "cafe da manha"
+            },
+            "saida": {
+                "cfop": "2102",
+                "cst": "20",
+                "pis": "73",
+                "cofins": "73",
+                "ipi": "49",
+                "clicar_isento": true
+            }
+        },
+        {
+            "entrada": {
+                "cfop": ["6101", "6102", "6106"],
+                "cst": ["020"],
+                "desembolso": "restaurante"
+            },
+            "saida": {
+                "cfop": "2102",
+                "cst": "20",
+                "pis": "50",
+                "cofins": "50",
+                "ipi": "49",
+                "clicar_integral": true
+            }
+        }
+    ]
+}

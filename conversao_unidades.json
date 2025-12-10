@@ -1,0 +1,56 @@
+{
+    "UN": [
+        "Unid",
+        "BD1",
+        "PO1",
+        "DIS",
+        "un",
+        "UN1",
+        "UND",
+        "UNID",
+        "PC1",
+        "TP1",
+        "EM1",
+        "BR1",
+        "LT1",
+        "PE1",
+        "PCT",
+        "RESMA",
+        "CADA",
+        "ROLO",
+        "BI1",
+        "UNIDAD",
+        "Un***",
+        "Un**",
+        "PA",
+        "BB1",
+        "VD1",
+        "BG1",
+        "GF1"
+    ],
+    "CX": [
+        "CX1",
+        "CX12",
+        "DP1"
+    ],
+    "PC": [
+        "PCA",
+        "Pt**",
+        "PACOTE",
+        "PT1",
+        "PECA",
+        "Pte",
+        "PT",
+        "PAC"
+    ],
+    "KG": [
+        "KG1",
+        "Kg***"
+    ],
+    "MT": [
+        "METRO"
+    ],
+    "FD": [
+        "FD10"
+    ]
+}
