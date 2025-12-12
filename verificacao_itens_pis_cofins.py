@@ -4,6 +4,7 @@ import json
 import os
 from tkinter import messagebox
 import unicodedata
+from utils import resource_path
 
 def normalizar_texto(texto):
     """Remove acentos e converte para minúsculas para comparação."""
@@ -12,7 +13,7 @@ def normalizar_texto(texto):
                   if unicodedata.category(c) != 'Mn').lower()
 
 def carregar_regras(perfil="verificacao_pis_cofins"):
-    caminho_json = "regras_fiscais.json"
+    caminho_json = resource_path("regras_fiscais.json")
     if not os.path.exists(caminho_json):
         messagebox.showerror("Erro", f"Arquivo de regras '{caminho_json}' não encontrado!")
         return []
@@ -26,11 +27,11 @@ def carregar_regras(perfil="verificacao_pis_cofins"):
         return []
 
 # Função para clicar em uma imagem na tela
-def clicar_imagem(imagem, timeout=5, offset_x=0, offset_y=0, clicks=1):
+def clicar_imagem(imagem, timeout=5, offset_x=0, offset_y=0, clicks=1, confidence=0.8):
     inicio = time.time()
     while time.time() - inicio < timeout:
         try:
-            posicao = py.locateCenterOnScreen(imagem, confidence=0.8)
+            posicao = py.locateCenterOnScreen(resource_path(imagem), confidence=confidence)
             if posicao:
                 py.click(posicao.x + offset_x, posicao.y + offset_y, clicks=clicks)
                 return True
@@ -42,7 +43,7 @@ def clicar_imagem(imagem, timeout=5, offset_x=0, offset_y=0, clicks=1):
     print(f"Imagem {imagem} não encontrada.")
     return False
 
-def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao_callback, clicar_rateio_callback):
+def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao_callback, clicar_rateio_callback, vars_uso_consumo=None):
     py.PAUSE = 0.2
     # Normaliza o desembolso (remove acentos e minúsculas)
     desembolso_raw = combo_desembolso.get()
@@ -75,112 +76,174 @@ def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_wi
 
         time.sleep(0.4)
         if checar_interrupcao_callback(): return
-        py.press('tab', presses=9)
+        if not clicar_imagem('cfop.png', offset_y=10, timeout=10, confidence=0.9): return
+        # py.press('tab', presses=9)
         if checar_interrupcao_callback(): return
         time.sleep(0.1)
         if checar_interrupcao_callback(): return
 
+        # --- LÓGICA INTELIGENTE DE USO E CONSUMO ---
+        uso_consumo = False
+        regra_encontrada = False # Inicializa variável de controle
+        if vars_uso_consumo and i < len(vars_uso_consumo):
+            uso_consumo = vars_uso_consumo[i].get()
+
+        if uso_consumo:
+             print(f"Item {i+1} marcado como USO E CONSUMO. Aplicando lógica inteligente.")
+             # Lógica inteligente
+             cfop_saida = "1556"
+             if str(cfop_valor).strip().startswith('6'):
+                 cfop_saida = "2556"
+             
+             # Executa preenchimento direto
+             time.sleep(0.1)
+             if checar_interrupcao_callback(): return
+             
+             # Digita CFOP de Saída
+             py.write(cfop_saida)
+             if checar_interrupcao_callback(): return
+
+             time.sleep(0.2)
+             if checar_interrupcao_callback(): return
+             
+             py.press('tab', presses=3) 
+             if checar_interrupcao_callback(): return
+             py.write('0') 
+             if checar_interrupcao_callback(): return
+             py.press ('tab')
+             if checar_interrupcao_callback(): return
+             
+             # CST 90
+             py.write("90")
+             if checar_interrupcao_callback(): return
+
+             py.press('tab')
+             if checar_interrupcao_callback(): return
+             
+             # PIS 98
+             py.write("98")
+             if checar_interrupcao_callback(): return
+             py.press('tab')
+             if checar_interrupcao_callback(): return
+             
+             # COFINS 98
+             py.write("98")
+             if checar_interrupcao_callback(): return
+             py.press('tab')
+             if checar_interrupcao_callback(): return
+             
+             # IPI 49
+             py.write("49")
+             if checar_interrupcao_callback(): return
+             py.press('tab')
+             if checar_interrupcao_callback(): return
+             
+             time.sleep(1)
+             if checar_interrupcao_callback(): return
+
+             # Rateio
+             clicar_rateio_callback(desembolso_raw)
+             if checar_interrupcao_callback(): return
+             
+             # PULA REGRAS (mas segue para confirmação)
+             regra_encontrada = True
+             pass 
+
         # --- MOTOR DE REGRAS ---
-        regra_encontrada = False
+        if not uso_consumo:
+            # regra_encontrada já foi inicializada como False lá em cima
         
-        for regra in regras:
-            condicoes = regra.get("entrada", {})
-            
-            # Checa CFOP e CST
-            cfop_match = cfop_valor in condicoes.get("cfop", [])
-            cst_match = cst_valor in condicoes.get("cst", [])
-            
-            # Checa Desembolso (se a regra exigir)
-            desembolso_regra = condicoes.get("desembolso", "")
-            if desembolso_regra:
-                # Se a regra tem 'desembolso', precisa bater (contém)
-                if normalizar_texto(desembolso_regra) not in desembolso_norm:
-                    continue # Regra não se aplica a este desembolso
-            
-            if cfop_match and cst_match:
-                print(f"Regra aplicada: CFOP {cfop_valor} / CST {cst_valor} / Filtro: {desembolso_regra}")
-                saida = regra.get("saida", {})
+            for regra in regras:
+                condicoes = regra.get("entrada", {})
                 
-                if checar_interrupcao_callback(): return
+                # Checa CFOP e CST
+                cfop_match = cfop_valor in condicoes.get("cfop", [])
+                cst_match = cst_valor in condicoes.get("cst", [])
                 
-                # CFOP Saída
-                if "cfop" in saida:
-                    py.write(saida["cfop"])
+                # Checa Desembolso (se a regra exigir)
+                desembolso_regra = condicoes.get("desembolso", "")
+                if desembolso_regra:
+                    # Se a regra tem 'desembolso', precisa bater (contém)
+                    if normalizar_texto(desembolso_regra) not in desembolso_norm:
+                        continue # Regra não se aplica a este desembolso
+                
+                if cfop_match and cst_match:
+                    print(f"Regra aplicada: CFOP {cfop_valor} / CST {cst_valor} / Filtro: {desembolso_regra}")
+                    saida = regra.get("saida", {})
+                    
                     if checar_interrupcao_callback(): return
-                
-                time.sleep(0.2)
-                if checar_interrupcao_callback(): return
-                
-                # Navegação fixa (Tab x3 -> '0' -> Tab)
-                # Algumas regras no original tinham variações minúsculas (tab x 3 ou não), 
-                # mas em geral era isso. Vamos padronizar conforme a engine anterior,
-                # mas observando o padrão "geral":
-                # O código original das isenções fazia: Tabx3 -> '0' -> Tab.
-                # O código do consumo fazia: Tabx3 -> '0' -> Tab.
-                # O padrão 5101 fazia: Tabx3 -> '0' -> Tab.
-                # Então é seguro manter.
-                
-                py.press('tab', presses=3) 
-                if checar_interrupcao_callback(): return
-                py.write('0') 
-                if checar_interrupcao_callback(): return
-                py.press ('tab')
-                if checar_interrupcao_callback(): return
-                
-                # CST Saída
-                if "cst" in saida:
-                    py.write(saida["cst"])
+                    
+                    # CFOP Saída
+                    if "cfop" in saida:
+                        py.write(saida["cfop"])
+                        if checar_interrupcao_callback(): return
+                    
+                    time.sleep(0.2)
                     if checar_interrupcao_callback(): return
-                
-                py.press('tab')
-                if checar_interrupcao_callback(): return
-                
-                # PIS
-                if "pis" in saida:
-                    py.write(saida["pis"])
+                    
+                    # Navegação fixa (Tab x3 -> '0' -> Tab)
+                    
+                    py.press('tab', presses=3) 
                     if checar_interrupcao_callback(): return
-                py.press('tab')
-                if checar_interrupcao_callback(): return
-                
-                # COFINS
-                if "cofins" in saida:
-                    py.write(saida["cofins"])
+                    py.write('0') 
                     if checar_interrupcao_callback(): return
-                py.press('tab')
-                if checar_interrupcao_callback(): return
+                    py.press ('tab')
+                    if checar_interrupcao_callback(): return
+                    
+                    # CST Saída
+                    if "cst" in saida:
+                        py.write(saida["cst"])
+                        if checar_interrupcao_callback(): return
+                    
+                    py.press('tab')
+                    if checar_interrupcao_callback(): return
+                    
+                    # PIS
+                    if "pis" in saida:
+                        py.write(saida["pis"])
+                        if checar_interrupcao_callback(): return
+                    py.press('tab')
+                    if checar_interrupcao_callback(): return
+                    
+                    # COFINS
+                    if "cofins" in saida:
+                        py.write(saida["cofins"])
+                        if checar_interrupcao_callback(): return
+                    py.press('tab')
+                    if checar_interrupcao_callback(): return
 
-                # IPI
-                if "ipi" in saida:
-                    py.write(saida["ipi"])
+                    # IPI
+                    if "ipi" in saida:
+                        py.write(saida["ipi"])
+                        if checar_interrupcao_callback(): return
+                    py.press('tab')
                     if checar_interrupcao_callback(): return
-                py.press('tab')
-                if checar_interrupcao_callback(): return
 
-                time.sleep(0.2)
-                if checar_interrupcao_callback(): return
-                
-                # Clicar Isento ou Integral
-                if saida.get("clicar_isento"):
-                    clicar_imagem('isento.png')
-                elif saida.get("clicar_integral"):
-                    clicar_imagem('valor_integral.png')
-                
-                if checar_interrupcao_callback(): return
-                py.press('tab')
-                if checar_interrupcao_callback(): return
-                
-                # Rateio
-                clicar_rateio_callback(desembolso_raw)
-                if checar_interrupcao_callback(): return
-                
-                regra_encontrada = True
-                break
+                    time.sleep(0.2)
+                    if checar_interrupcao_callback(): return
+                    
+                    # Clicar Isento ou Integral
+                    if saida.get("clicar_isento"):
+                        clicar_imagem('isento.png')
+                    elif saida.get("clicar_integral"):
+                        clicar_imagem('valor_integral.png')
+                    
+                    if checar_interrupcao_callback(): return
+                    py.press('tab')
+                    if checar_interrupcao_callback(): return
+                    
+                    # Rateio
+                    clicar_rateio_callback(desembolso_raw)
+                    if checar_interrupcao_callback(): return
+                    
+                    regra_encontrada = True
+                    break
         
-        if not regra_encontrada:
-            print(f"Nenhuma regra encontrada para CFOP {cfop_valor}, CST {cst_valor}, Desembolso {desembolso_raw}")
-            # Se não encontrar regra, o código original continuava o loop (indo para o próximo item),
-            # ou simplesmente não fazia nada e passava para a navegação de saída.
-            # Vamos assumir que se não tem regra, não edita, apenas sai e vai pro próximo.
+            if not regra_encontrada:
+                print(f"Nenhuma regra encontrada para CFOP {cfop_valor}, CST {cst_valor}, Desembolso {desembolso_raw}")
+                # Se não encontrar regra, o código original continuava o loop (indo para o próximo item),
+                # ou simplesmente não fazia nada e passava para a navegação de saída.
+                # Vamos assumir que se não tem regra, não edita, apenas sai e vai pro próximo.
         
         # --- CONFIRMAÇÃO E NAVEGAÇÃO PRO PRÓXIMO ITEM ---
         

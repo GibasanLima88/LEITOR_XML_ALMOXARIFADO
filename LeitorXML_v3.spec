@@ -1,11 +1,25 @@
 # -*- mode: python ; coding: utf-8 -*-
+import glob
+import os
 
+datas = []
+# Include all pngs
+for file in glob.glob("*.png"):
+    datas.append((file, "."))
+
+# Include all jsons
+for file in glob.glob("*.json"):
+    datas.append((file, "."))
+
+# Include icon
+if os.path.exists('icone.ico'):
+    datas.append(('icone.ico', '.'))
 
 a = Analysis(
     ['leitor_xml.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=datas,
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

@@ -17,11 +17,20 @@ from verificacao_itens_pis_cofins import verificar_itens_pis_cofins_regras
 import estilos
 from verificacao_itens import verificar_itens
 from cadastro_item import cadastrar_item
+from cadastro_item import cadastrar_item
 from relacionar_item import relacionar
+from utils import resource_path, get_config_path
 
 # Carregar grupos do JSON
 def carregar_grupos():
-    caminho_json = "grupos.json"
+    # Tenta carregar do arquivo do usuário (editável)
+    caminho_user = get_config_path("grupos.json")
+    if os.path.exists(caminho_user):
+        caminho_json = caminho_user
+    else:
+        # Se não existir, pega o padrão embutido
+        caminho_json = resource_path("grupos.json")
+
     if not os.path.exists(caminho_json):
         messagebox.showerror("Erro", f"Arquivo '{caminho_json}' não encontrado!")
         return [], []
@@ -36,7 +45,14 @@ def carregar_grupos():
 
 # Carregar desembolsos do JSON
 def carregar_desembolsos():
-    caminho_json = "desembolsos.json"
+    # Tenta carregar do arquivo do usuário (editável)
+    caminho_user = get_config_path("desembolsos.json")
+    if os.path.exists(caminho_user):
+        caminho_json = caminho_user
+    else:
+        # Se não existir, pega o padrão embutido
+        caminho_json = resource_path("desembolsos.json")
+        
     if not os.path.exists(caminho_json):
         messagebox.showerror("Erro", f"Arquivo '{caminho_json}' não encontrado!")
         return []
@@ -54,29 +70,34 @@ desembolsos_lista = carregar_desembolsos()
 
 # Função para salvar a lista completa no JSON
 def salvar_lista_json(arquivo, chave_lista, lista):
-    if not os.path.exists(arquivo):
-        messagebox.showerror("Erro", f"Arquivo '{arquivo}' não encontrado!")
-        return False
+    # Usa nome base para garantir que pegamos o caminho persistente
+    arquivo_persistente = get_config_path(os.path.basename(arquivo))
 
     try:
-        with open(arquivo, "r", encoding="utf-8") as f:
-            dados = json.load(f)
+        # Tenta ler o arquivo existente para preservar outros dados
+        if os.path.exists(arquivo_persistente):
+            with open(arquivo_persistente, "r", encoding="utf-8") as f:
+                dados = json.load(f)
+        else:
+             # Se não existir persistente, tenta ler do bundle pra usar de base (opcional)
+             # ou começa vazio. Vamos começar vazio ou com o que tem.
+             dados = {}
         
         # Atualiza a lista e salva
         lista.sort(key=str.casefold)
         dados[chave_lista] = lista
         
-        with open(arquivo, "w", encoding="utf-8") as f:
+        with open(arquivo_persistente, "w", encoding="utf-8") as f:
             json.dump(dados, f, indent=4, ensure_ascii=False)
             
         return True
     except Exception as e:
-        messagebox.showerror("Erro", f"Erro ao salvar no '{arquivo}': {e}")
+        messagebox.showerror("Erro", f"Erro ao salvar no '{arquivo_persistente}': {e}")
         return False
 
 # Função para salvar grupos e grupos especiais
 def salvar_grupos_json(lista_grupos, lista_especiais):
-    arquivo = "grupos.json"
+    arquivo = get_config_path("grupos.json")
     try:
         dados = {
             "grupos": sorted(lista_grupos, key=str.casefold),
@@ -91,35 +112,48 @@ def salvar_grupos_json(lista_grupos, lista_especiais):
 
 # --- FUNÇÕES PARA CONVERSÃO DE UNIDADES (FASE 4) ---
 def carregar_unidades_conversao():
-    caminho_json = "conversao_unidades.json"
-    if not os.path.exists(caminho_json):
-        # Cria arquivo padrão se não existir (fallback)
-        dados_padrao = {
-            "UN": ["Unid", "BD1", "PO1", "DIS", "un", "UN1", "UND", "UNID", "PC1", "TP1", 
-                   "EM1", "BR1", "LT1", "PE1", "PCT", "RESMA", "CADA", "ROLO", "BI1", 
-                   "UNIDAD", "Un***", "Un**", "PA"],
-            "CX": ["CX1", "CX12", "DP1"],
-            "PC": ["PCA", "Pt**", "PACOTE", "PT1", "PECA", "Pte", "PT", "PAC"],
-            "KG": ["KG1", "Kg***"],
-            "MT": ["METRO"],
-            "FD": ["FD10"]
-        }
+    # 1. Tentar ler do arquivo do usuário (configuração persistente)
+    caminho_user = get_config_path("conversao_unidades.json")
+    if os.path.exists(caminho_user):
         try:
-            with open(caminho_json, "w", encoding="utf-8") as f:
-                json.dump(dados_padrao, f, indent=4, ensure_ascii=False)
-            return dados_padrao
+            with open(caminho_user, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Erro ao ler config do usuário: {e}")
+
+    # 2. Tentar ler do bundle (padrão embutido no EXE)
+    caminho_bundle = resource_path("conversao_unidades.json")
+    if os.path.exists(caminho_bundle):
+        try:
+            with open(caminho_bundle, "r", encoding="utf-8") as f:
+                return json.load(f)
         except Exception:
-            return {}
-            
+            pass
+
+    # 3. Fallback: Retorna dicionário padrão hardcoded
+    dados_padrao = {
+        "UN": ["Unid", "BD1", "PO1", "DIS", "un", "UN1", "UND", "UNID", "PC1", "TP1", 
+                "EM1", "BR1", "LT1", "PE1", "PCT", "RESMA", "CADA", "ROLO", "BI1", 
+                "UNIDAD", "Un***", "Un**", "PA"],
+        "CX": ["CX1", "CX12", "DP1"],
+        "PC": ["PCA", "Pt**", "PACOTE", "PT1", "PECA", "Pte", "PT", "PAC"],
+        "KG": ["KG1", "Kg***"],
+        "MT": ["METRO"],
+        "FD": ["FD10"]
+    }
+    # Opcional: Criar o arquivo do usuário com o padrão para facilitar edição?
+    # Vamos criar para garantir que o usuário veja o arquivo.
     try:
-        with open(caminho_json, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception as e:
-        messagebox.showerror("Erro", f"Erro ao ler '{caminho_json}': {e}")
-        return {}
+        with open(caminho_user, "w", encoding="utf-8") as f:
+            json.dump(dados_padrao, f, indent=4, ensure_ascii=False)
+    except Exception:
+        pass
+        
+    return dados_padrao
 
 def salvar_unidades_conversao(dados):
-    caminho_json = "conversao_unidades.json"
+    # Sempre salvar no caminho do usuário (persistente)
+    caminho_json = get_config_path("conversao_unidades.json")
     try:
         with open(caminho_json, "w", encoding="utf-8") as f:
             json.dump(dados, f, indent=4, ensure_ascii=False)
@@ -626,14 +660,14 @@ def alterar_desembolso(i):
         print(f"Desembolso ajustado: {desembolso}")  # Depuração
         if checar_interrupcao():
                 return
-        localizacao = py.locateOnScreen('seta.png', confidence=0.8)
+        localizacao = py.locateOnScreen(resource_path('seta.png'), confidence=0.8)
         if localizacao:
             centro = py.center(localizacao)
             py.click(centro, clicks=2)
             time.sleep(1)
             if checar_interrupcao():
                 return
-        rateio = py.locateOnScreen('rateio.png', confidence=0.8)
+        rateio = py.locateOnScreen(resource_path('rateio.png'), confidence=0.8)
         if rateio:
             rateio_centro = py.center(rateio)
             py.click(rateio_centro)
@@ -649,14 +683,14 @@ def alterar_desembolso(i):
             py.click(x=1313, y=320)  
             if checar_interrupcao():
                 return
-        confirmar = py.locateOnScreen('confirmar2.png', confidence=0.8)
+        confirmar = py.locateOnScreen(resource_path('confirmar2.png'), confidence=0.8)
         if confirmar:
             confirmar_centro = py.center(confirmar)
             py.click(confirmar_centro) 
             time.sleep(1)
             if checar_interrupcao():
                 return
-        localizacao = py.locateOnScreen('seta.png', confidence=0.8)
+        localizacao = py.locateOnScreen(resource_path('seta.png'), confidence=0.8)
         if localizacao:
             centro = py.center(localizacao)
             py.click(centro)
@@ -673,7 +707,7 @@ def alterar_desembolso(i):
 def clicar_rateio(desembolso2):
     desembolso2 = combo_desembolso.get()
     # Localiza e clica no botão "rateio"
-    rateio = py.locateOnScreen('rateio.png', confidence=0.8)
+    rateio = py.locateOnScreen(resource_path('rateio.png'), confidence=0.8)
     if rateio:
         rateio_centro = py.center(rateio)
         py.click(rateio_centro)
@@ -811,6 +845,8 @@ def abrir_arquivo():
 
         # Preencher os itens na interface
         entry_codigo_widgets = []  # Lista para armazenar os widgets de código
+        global vars_uso_consumo
+        vars_uso_consumo = [] # Lista para armazenar as variaveis dos checkboxes
         if produtos:
             for i, produto in enumerate(produtos):
                 # Labels e entradas para cada item
@@ -840,23 +876,29 @@ def abrir_arquivo():
                 entry_cfop.grid(row=i + 1, column=5, padx=10, pady=5, sticky="w")
                 entry_cfop_widgets.append(entry_cfop)
 
+                # Checkbox Uso/Consumo
+                var_uso = tk.BooleanVar()
+                chk_uso = tk.Checkbutton(frame_itens, text="Uso", variable=var_uso, bg='#c3ccdb') 
+                chk_uso.grid(row=i + 1, column=6, padx=2, pady=5, sticky="w")
+                vars_uso_consumo.append(var_uso)
+
                 lb_ncm = tk.Label(frame_itens, text="NCM:")
                 estilos.estilizar_label(lb_ncm)
-                lb_ncm.grid(row=i + 1, column=6, padx=10, pady=5, sticky="w")
+                lb_ncm.grid(row=i + 1, column=7, padx=10, pady=5, sticky="w")
 
                 entry_ncm = tk.Entry(frame_itens, width=9, font=('Arial', 10))
                 entry_ncm.insert(0, ncm[i] if i < len(ncm) else "N/A")
-                entry_ncm.grid(row=i + 1, column=7, padx=10, pady=5, sticky="w")
+                entry_ncm.grid(row=i + 1, column=8, padx=10, pady=5, sticky="w")
                 entry_ncm_widgets.append(entry_ncm)
 
                 # Unidade de medida
                 lb_un = tk.Label(frame_itens, text="UN:")
                 estilos.estilizar_label(lb_un)
-                lb_un.grid(row=i + 1, column=8, padx=10, pady=5, sticky="w")
+                lb_un.grid(row=i + 1, column=9, padx=10, pady=5, sticky="w")
 
                 entry_un = tk.Entry(frame_itens, width=5, font=('Arial', 10))
                 entry_un.insert(0, unidades[i] if i < len(unidades) else "N/A")
-                entry_un.grid(row=i + 1, column=9, padx=10, pady=5, sticky="w")
+                entry_un.grid(row=i + 1, column=10, padx=10, pady=5, sticky="w")
                 entry_un_widgets.append(entry_un)
                 
 #                 # Label para o Grupo de Produto
@@ -889,7 +931,7 @@ def abrir_arquivo():
                 lb_codigo.place(x=930, y=10)  # Ajuste a posição conforme necessário
 
                 entry_codigo = tk.Entry(frame_itens, width=10, font=('Arial', 10))
-                entry_codigo.grid(row=i + 1, column=10, padx=10, pady=5, sticky="w")  # Use grid aqui
+                entry_codigo.grid(row=i + 1, column=11, padx=10, pady=5, sticky="w")  # Use grid aqui
                 
                 entry_codigo_widgets.append(entry_codigo)
 
@@ -918,7 +960,7 @@ def abrir_arquivo():
                                   )
                 )
                 estilos.estilizar_botao(btn_cadastrar_item, "acao")
-                btn_cadastrar_item.grid(row=i + 1, column=11, padx=10, pady=5, sticky="w")
+                btn_cadastrar_item.grid(row=i + 1, column=12, padx=10, pady=5, sticky="w")
                 
                                
 
@@ -953,7 +995,7 @@ def abrir_arquivo():
                 estilos.estilizar_botao(btn_relacionar, "neutro")
                 
                 
-                btn_relacionar.grid(row=i + 1, column=12, padx=10, pady=5, sticky="w")
+                btn_relacionar.grid(row=i + 1, column=13, padx=10, pady=5, sticky="w")
 
         else:
             messagebox.showerror("Erro", "Produtos não encontrados no XML.")
@@ -985,7 +1027,7 @@ root.geometry("1300x700")
 
 # --- Ícone da Janela ---
 try:
-    root.iconbitmap("icone.ico")
+    root.iconbitmap(resource_path("icone.ico"))
 except Exception as e:
     print(f"Erro ao carregar ícone: {e}")
 
@@ -1031,7 +1073,7 @@ estilos.estilizar_botao(btn_abrir, "neutro")
 btn_abrir.grid(row=0, column=2, padx=5, pady=5)
 
 # btn_verificar = tk.Button(frame_caminho, text="Verificar Itens", command=verificar_itens)
-btn_verificar = tk.Button(frame_caminho, text="Verificar Itens", command=lambda: verificar_itens(entry_ncm_widgets, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao, clicar_rateio))
+btn_verificar = tk.Button(frame_caminho, text="Verificar Itens", command=lambda: verificar_itens(entry_ncm_widgets, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao, clicar_rateio, vars_uso_consumo))
 estilos.estilizar_botao(btn_verificar, "destaque")
 btn_verificar.grid(row=0, column=3, padx=5, pady=5)
 
@@ -1049,12 +1091,12 @@ btn_alterar_desembolso.grid(row=0, column=5, padx=5, pady=5)
 
 
 # btn_verificar = tk.Button(frame_caminho, text="Verificar Itens", command=verificar_itens)
-btn_verificar_simples = tk.Button(frame_caminho, text="Verificar Itens simples", command=lambda: verificar_itens_simples(entry_ncm_widgets, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao, clicar_rateio))
+btn_verificar_simples = tk.Button(frame_caminho, text="Verificar Itens simples", command=lambda: verificar_itens_simples(entry_ncm_widgets, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao, clicar_rateio, vars_uso_consumo))
 estilos.estilizar_botao(btn_verificar_simples, "destaque")
 btn_verificar_simples.grid(row=0, column=6, padx=5, pady=5)
 
 # btn_verificar = tk.Button(frame_caminho, text="Verificar Itens", command=verificar_itens)
-btn_verificar_pis_cofins = tk.Button(frame_caminho, text="Verificar KMR,KJP,HPB,KPL", command=lambda: verificar_itens_pis_cofins_regras(entry_ncm_widgets, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao, clicar_rateio))
+btn_verificar_pis_cofins = tk.Button(frame_caminho, text="Verificar KMR,KJP,HPB,KPL", command=lambda: verificar_itens_pis_cofins_regras(entry_ncm_widgets, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao, clicar_rateio, vars_uso_consumo))
 estilos.estilizar_botao(btn_verificar_pis_cofins, "amarelo")
 btn_verificar_pis_cofins.grid(row=0, column=7, padx=5, pady=5)
 
