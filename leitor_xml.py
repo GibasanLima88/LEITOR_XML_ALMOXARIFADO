@@ -1177,8 +1177,8 @@ lb_caminho.grid(row=0, column=0, padx=5, pady=5, sticky="w")  # Alinhado à esqu
 entry_caminho = tk.Entry(frame_caminho, width=50, font=('Arial', 10))
 entry_caminho.grid(row=0, column=1, padx=5, pady=5)
 
-btn_abrir = tk.Button(frame_caminho, text="Abrir", command=abrir_arquivo, bg="green", fg="white")
-estilos.estilizar_botao(btn_abrir, "acao")
+btn_abrir = tk.Button(frame_caminho, text="Abrir", command=abrir_arquivo)
+estilos.estilizar_botao(btn_abrir, "neutro")
 btn_abrir.grid(row=0, column=2, padx=5, pady=5)
 
 # btn_verificar = tk.Button(frame_caminho, text="Verificar Itens", command=verificar_itens)
