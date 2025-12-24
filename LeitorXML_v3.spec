@@ -4,16 +4,16 @@ import os
 
 datas = []
 # Include all pngs
-for file in glob.glob("*.png"):
-    datas.append((file, "."))
+for file in glob.glob("images/*.png"):
+    datas.append((file, "images"))
 
 # Include all jsons
 for file in glob.glob("*.json"):
     datas.append((file, "."))
 
 # Include icon
-if os.path.exists('icone.ico'):
-    datas.append(('icone.ico', '.'))
+if os.path.exists('images/icone.ico'):
+    datas.append(('images/icone.ico', 'images'))
 
 a = Analysis(
     ['leitor_xml.py'],
@@ -49,5 +49,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['icone.ico'],
+    icon=['images/icone.ico'],
 )

@@ -4,7 +4,7 @@ import json
 import os
 from tkinter import messagebox
 import unicodedata
-from utils import resource_path
+from core.utils import resource_path
 
 def normalizar_texto(texto):
     """Remove acentos e converte para minúsculas para comparação."""
@@ -13,7 +13,7 @@ def normalizar_texto(texto):
                   if unicodedata.category(c) != 'Mn').lower()
 
 def carregar_regras(perfil="verificacao_pis_cofins"):
-    caminho_json = resource_path("regras_fiscais.json")
+    caminho_json = resource_path("json_files/regras_fiscais.json")
     if not os.path.exists(caminho_json):
         messagebox.showerror("Erro", f"Arquivo de regras '{caminho_json}' não encontrado!")
         return []
@@ -31,7 +31,8 @@ def clicar_imagem(imagem, timeout=5, offset_x=0, offset_y=0, clicks=1, confidenc
     inicio = time.time()
     while time.time() - inicio < timeout:
         try:
-            posicao = py.locateCenterOnScreen(resource_path(imagem), confidence=confidence)
+            caminho_img = f"images/{imagem}" if not imagem.startswith("images") else imagem
+            posicao = py.locateCenterOnScreen(resource_path(caminho_img), confidence=confidence)
             if posicao:
                 py.click(posicao.x + offset_x, posicao.y + offset_y, clicks=clicks)
                 return True
@@ -43,8 +44,8 @@ def clicar_imagem(imagem, timeout=5, offset_x=0, offset_y=0, clicks=1, confidenc
     print(f"Imagem {imagem} não encontrada.")
     return False
 
-def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao_callback, clicar_rateio_callback, vars_uso_consumo=None):
-    py.PAUSE = 0.2
+def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao_callback, clicar_rateio_callback, vars_uso_consumo=None, velocidade=0.2):
+    py.PAUSE = velocidade
     # Normaliza o desembolso (remove acentos e minúsculas)
     desembolso_raw = combo_desembolso.get()
     desembolso_norm = normalizar_texto(desembolso_raw)
@@ -65,9 +66,9 @@ def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_wi
     if checar_interrupcao_callback(): return
 
     for i, (cfop_entry, cst_entry, ncm_widget) in enumerate(zip(entry_cfop_widgets, entry_cst_widgets, ncm_entry)):
-        cfop_valor = cfop_entry.get()
-        cst_valor = cst_entry.get()
-        ncm_valor = ncm_widget.get()
+        cfop_valor = str(cfop_entry.get()).strip()
+        cst_valor = str(cst_entry.get()).strip()
+        ncm_valor = str(ncm_widget.get()).strip()
         print(f"Índice atual: {i}, CFOP: {cfop_valor}, CST: {cst_valor}, NCM: {ncm_valor}")
 
         # Entrar no item
@@ -101,6 +102,7 @@ def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_wi
              
              # Digita CFOP de Saída
              py.write(cfop_saida)
+             py.press('enter')
              if checar_interrupcao_callback(): return
 
              time.sleep(0.2)
@@ -109,12 +111,14 @@ def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_wi
              py.press('tab', presses=3) 
              if checar_interrupcao_callback(): return
              py.write('0') 
+             time.sleep(0.2)
              if checar_interrupcao_callback(): return
              py.press ('tab')
              if checar_interrupcao_callback(): return
              
              # CST 90
              py.write("90")
+             time.sleep(0.2)
              if checar_interrupcao_callback(): return
 
              py.press('tab')
@@ -122,12 +126,14 @@ def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_wi
              
              # PIS 98
              py.write("98")
+             time.sleep(0.2)
              if checar_interrupcao_callback(): return
              py.press('tab')
              if checar_interrupcao_callback(): return
              
              # COFINS 98
              py.write("98")
+             time.sleep(0.2)
              if checar_interrupcao_callback(): return
              py.press('tab')
              if checar_interrupcao_callback(): return
@@ -157,18 +163,14 @@ def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_wi
                 condicoes = regra.get("entrada", {})
                 
                 # Checa CFOP e CST
-                cfop_match = cfop_valor in condicoes.get("cfop", [])
-                cst_match = cst_valor in condicoes.get("cst", [])
-                
-                # Checa Desembolso (se a regra exigir)
-                desembolso_regra = condicoes.get("desembolso", "")
-                if desembolso_regra:
-                    # Se a regra tem 'desembolso', precisa bater (contém)
-                    if normalizar_texto(desembolso_regra) not in desembolso_norm:
-                        continue # Regra não se aplica a este desembolso
+                lista_cfops = [str(c).strip() for c in condicoes.get("cfop", [])]
+                lista_csts = [str(c).strip() for c in condicoes.get("cst", [])]
+
+                cfop_match = cfop_valor in lista_cfops
+                cst_match = cst_valor in lista_csts
                 
                 if cfop_match and cst_match:
-                    print(f"Regra aplicada: CFOP {cfop_valor} / CST {cst_valor} / Filtro: {desembolso_regra}")
+                    print(f"Regra aplicada: CFOP {cfop_valor} / CST {cst_valor}")
                     saida = regra.get("saida", {})
                     
                     if checar_interrupcao_callback(): return
@@ -176,16 +178,19 @@ def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_wi
                     # CFOP Saída
                     if "cfop" in saida:
                         py.write(saida["cfop"])
+                        py.press('enter')
+                        time.sleep(0.2)
                         if checar_interrupcao_callback(): return
                     
-                    time.sleep(0.2)
-                    if checar_interrupcao_callback(): return
+                    
+                    
                     
                     # Navegação fixa (Tab x3 -> '0' -> Tab)
                     
                     py.press('tab', presses=3) 
                     if checar_interrupcao_callback(): return
                     py.write('0') 
+                    time.sleep(0.1)
                     if checar_interrupcao_callback(): return
                     py.press ('tab')
                     if checar_interrupcao_callback(): return
@@ -193,6 +198,7 @@ def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_wi
                     # CST Saída
                     if "cst" in saida:
                         py.write(saida["cst"])
+                        time.sleep(0.1)
                         if checar_interrupcao_callback(): return
                     
                     py.press('tab')
@@ -201,6 +207,7 @@ def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_wi
                     # PIS
                     if "pis" in saida:
                         py.write(saida["pis"])
+                        time.sleep(0.1)
                         if checar_interrupcao_callback(): return
                     py.press('tab')
                     if checar_interrupcao_callback(): return
@@ -208,6 +215,7 @@ def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_wi
                     # COFINS
                     if "cofins" in saida:
                         py.write(saida["cofins"])
+                        time.sleep(0.1)
                         if checar_interrupcao_callback(): return
                     py.press('tab')
                     if checar_interrupcao_callback(): return
@@ -215,11 +223,12 @@ def verificar_itens_pis_cofins_regras(ncm_entry, combo_desembolso, entry_cfop_wi
                     # IPI
                     if "ipi" in saida:
                         py.write(saida["ipi"])
+                        time.sleep(0.1)
                         if checar_interrupcao_callback(): return
                     py.press('tab')
                     if checar_interrupcao_callback(): return
 
-                    time.sleep(0.2)
+                    time.sleep(0.1)
                     if checar_interrupcao_callback(): return
                     
                     # Clicar Isento ou Integral

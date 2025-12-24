@@ -3,10 +3,10 @@ import time
 import json
 import os
 from tkinter import messagebox
-from utils import resource_path
+from core.utils import resource_path
 
-def carregar_regras(perfil="verificacao_simples"):
-    caminho_json = resource_path("regras_fiscais.json")
+def carregar_regras(perfil="verificacao_padrao"):
+    caminho_json = resource_path("json_files/regras_fiscais.json")
     if not os.path.exists(caminho_json):
         messagebox.showerror("Erro", f"Arquivo de regras '{caminho_json}' não encontrado!")
         return []
@@ -19,12 +19,12 @@ def carregar_regras(perfil="verificacao_simples"):
         messagebox.showerror("Erro", f"Erro ao ler regras fiscais: {e}")
         return []
 
-# Função para clicar em uma imagem na tela
 def clicar_imagem(imagem, timeout=5, offset_x=0, offset_y=0, clicks=1, confidence=0.8):
     inicio = time.time()
     while time.time() - inicio < timeout:
         try:
-            posicao = py.locateCenterOnScreen(resource_path(imagem), confidence=confidence)
+            caminho_img = f"images/{imagem}" if not imagem.startswith("images") else imagem
+            posicao = py.locateCenterOnScreen(resource_path(caminho_img), confidence=confidence)
             if posicao:
                 py.click(posicao.x + offset_x, posicao.y + offset_y, clicks=clicks)
                 return True
@@ -36,43 +36,43 @@ def clicar_imagem(imagem, timeout=5, offset_x=0, offset_y=0, clicks=1, confidenc
     print(f"Imagem {imagem} não encontrada.")
     return False
 
-
-def verificar_itens_simples(ncm_entry, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao_callback, clicar_rateio_callback, vars_uso_consumo=None):
-    py.PAUSE = 0.3
+def verificar_itens(ncm_entry, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao_callback, clicar_rateio_callback, vars_uso_consumo=None, velocidade=0.2):
+    py.PAUSE = velocidade
     desembolso2 = combo_desembolso.get()  # Obtenha o valor selecionado no combobox
     
-    # Carregar regras do perfil simples
-    regras = carregar_regras("verificacao_simples")
+    # Carregar regras do perfil padrão
+    regras = carregar_regras("verificacao_padrao")
     if not regras:
-        return
+        return # Aborta se não houver regras
 
     # Localiza a imagem na tela
     if clicar_imagem('seta.png'):
+        if checar_interrupcao_callback(): return
         time.sleep(1)
-        if checar_interrupcao_callback():
-            return
+        if checar_interrupcao_callback(): return
+    
     py.press('up', presses=60)  # Pressiona a seta para cima 4 vezes
+    if checar_interrupcao_callback(): return
     time.sleep(2)
-    if checar_interrupcao_callback():
-            return
+    if checar_interrupcao_callback(): return
+    
     for i, (cfop_entry, cst_entry, ncm_widget) in enumerate(zip(entry_cfop_widgets, entry_cst_widgets, ncm_entry)):
         cfop_valor = cfop_entry.get()
         cst_valor = cst_entry.get()
         ncm_valor = ncm_widget.get()  # Extrair o valor do widget específico de NCM
         print(f"Índice atual: {i}, CFOP: {cfop_valor}, CST: {cst_valor}, NCM: {ncm_valor}")
-        if checar_interrupcao_callback():
-            return
+
         # Localiza a imagem na tela
         if clicar_imagem('seta.png', clicks=2):
-            if checar_interrupcao_callback(): return
-            time.sleep(0.4)
-            if checar_interrupcao_callback(): return
-            if not clicar_imagem('cfop.png', offset_y=10, timeout=10, confidence=0.9): return
-            # py.press('tab', presses=9)
-            if checar_interrupcao_callback(): return
-            time.sleep(0.1)
             if checar_interrupcao_callback():
                 return
+            time.sleep(0.3)
+            if not clicar_imagem('cfop.png', offset_y=10, timeout=10, confidence=0.9): return
+            #py.press('tab', presses=9)
+            time.sleep(0.2)
+            if checar_interrupcao_callback():
+                return
+            
             
             # --- LÓGICA INTELIGENTE DE USO E CONSUMO ---
             uso_consumo = False
@@ -93,33 +93,29 @@ def verificar_itens_simples(ncm_entry, combo_desembolso, entry_cfop_widgets, ent
                  
                  # Digita CFOP de Saída
                  py.write(cfop_saida)
+                 time.sleep(0.2)
+                 py.press('enter')
                  if checar_interrupcao_callback(): return
+                
                  
                  time.sleep(0.1)
-                 if checar_interrupcao_callback(): return
+                 # Situacao tributaria A
+                 # if not clicar_imagem('situacao_tributaria_a.png',offset_y=20, timeout=10, confidence=0.8): return
                  py.press('tab', presses=3)
                  if checar_interrupcao_callback(): return
                  
-                 # Digita '0' (Padrão)
-                 py.write('0')
-                 if checar_interrupcao_callback(): return
+                 py.write('0') # Padrão
                  time.sleep(0.1)
                  if checar_interrupcao_callback(): return
-                 
-                 # Lógica de Tabs e CST de Saída
                  py.press('tab')
-                 if checar_interrupcao_callback(): return
-                  
+
+                 # Situacao B (Tab logic está comentada no código original, confiamos no TAB anterior)
                  if checar_interrupcao_callback(): return
                  
                  # CST 90
                  py.write("90")
-                 if checar_interrupcao_callback(): return
-
-                 if checar_interrupcao_callback(): return
                  time.sleep(0.2)
-                 if checar_interrupcao_callback():
-                     return
+                 if checar_interrupcao_callback(): return
                  py.press('tab')
                  if checar_interrupcao_callback(): return
                  
@@ -142,16 +138,16 @@ def verificar_itens_simples(ncm_entry, combo_desembolso, entry_cfop_widgets, ent
                  time.sleep(1)
                  if checar_interrupcao_callback(): return
                  
-                 # Clicar Rateio
+                 # Rateio
                  clicar_rateio_callback(desembolso2)
                  if checar_interrupcao_callback(): return
                  
-                 # PULA REGRAS (mas segue para confirmação)
-                 regra_encontrada = True
-                 pass
+                 # PULA O MOTOR DE REGRAS PADRÃO (mas segue para confirmação)
+                 regra_encontrada = True # Marca que foi processado com sucesso
+                 pass 
 
             # --- INICIO DO MOTOR DE REGRAS ---
-            # --- INICIO DO MOTOR DE REGRAS ---
+            # Só executa regras se NÃO for uso/consumo
             if not uso_consumo:
                 for regra in regras:
                     condicoes = regra.get("entrada", {})
@@ -170,40 +166,39 @@ def verificar_itens_simples(ncm_entry, combo_desembolso, entry_cfop_widgets, ent
                         # Digita CFOP de Saída
                         if "cfop" in saida:
                             py.write(saida["cfop"])
+                            time.sleep(0.2)
+                            py.press('enter')
                             if checar_interrupcao_callback(): return
-                        
+                            
                         time.sleep(0.1)
-                        if checar_interrupcao_callback(): return
+                        # if not clicar_imagem('situacao_tributaria_a.png',offset_y=20, timeout=10, confidence=0.8): return
                         py.press('tab', presses=3)
                         if checar_interrupcao_callback(): return
                         
                         # Digita '0' (Padrão)
                         py.write('0')
+                        time.sleep(0.2)
                         if checar_interrupcao_callback(): return
-                        time.sleep(0.1)
-                        if checar_interrupcao_callback(): return
-                        
-                        # Lógica de Tabs e CST de Saída
                         py.press('tab')
-                        if checar_interrupcao_callback(): return
-                         
+                        # Lógica de Tabs e CST de Saída
+                        # if not clicar_imagem('situacao_tributaria_b.png', offset_y=20,timeout=10, confidence=0.9): return
+                        # py.press('tab')
                         if checar_interrupcao_callback(): return
                         
                         # Se tiver CST de saída, digita
                         if "cst" in saida:
                              py.write(saida["cst"])
                              if checar_interrupcao_callback(): return
-    
-                        if checar_interrupcao_callback(): return
+                        
                         time.sleep(0.2)
-                        if checar_interrupcao_callback():
-                            return
+                        if checar_interrupcao_callback(): return
                         py.press('tab')
                         if checar_interrupcao_callback(): return
                         
                         # PIS
                         if "pis" in saida:
                             py.write(saida["pis"])
+                            time.sleep(0.1)
                             if checar_interrupcao_callback(): return
                         py.press('tab')
                         if checar_interrupcao_callback(): return
@@ -211,6 +206,7 @@ def verificar_itens_simples(ncm_entry, combo_desembolso, entry_cfop_widgets, ent
                         # COFINS
                         if "cofins" in saida:
                             py.write(saida["cofins"])
+                            time.sleep(0.1)
                             if checar_interrupcao_callback(): return
                         py.press('tab')
                         if checar_interrupcao_callback(): return
@@ -218,6 +214,7 @@ def verificar_itens_simples(ncm_entry, combo_desembolso, entry_cfop_widgets, ent
                         # IPI
                         if "ipi" in saida:
                             py.write(saida["ipi"])
+                           
                             if checar_interrupcao_callback(): return
                         
                         time.sleep(1)
@@ -228,24 +225,25 @@ def verificar_itens_simples(ncm_entry, combo_desembolso, entry_cfop_widgets, ent
                         if checar_interrupcao_callback(): return
                         
                         regra_encontrada = True
-                        break # Sai do loop de regras
+                        break # Sai do loop de regras e vai para confirmar/próximo item
 
-            if not regra_encontrada:
-                 print(f"Nenhuma regra encontrada para CFOP {cfop_valor} e CST {cst_valor}")
+                if not regra_encontrada:
+                    print(f"Nenhuma regra encontrada para CFOP {cfop_valor} e CST {cst_valor}")
             
             # --- FIM DO MOTOR DE REGRAS ---
-            
+
         if clicar_imagem('confirmar2.png'):
-            if checar_interrupcao_callback(): return
             time.sleep(1.5)
-            if checar_interrupcao_callback(): return
+            if checar_interrupcao_callback():
+                return
         if clicar_imagem('seta.png'):
-            if checar_interrupcao_callback(): return
+            if checar_interrupcao_callback():
+                return
             time.sleep(0.4)
-            if checar_interrupcao_callback(): return
             py.press('down')
-            if checar_interrupcao_callback(): return
+            if checar_interrupcao_callback():
+                return
             time.sleep(0.4)    
-            if checar_interrupcao_callback(): return
-            py.moveTo(x=527, y=360) 
-            if checar_interrupcao_callback(): return
+            py.moveTo(x=527, y=360)  
+            if checar_interrupcao_callback():
+                return

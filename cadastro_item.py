@@ -2,14 +2,15 @@ import pyautogui as py
 import time
 import pyperclip
 from tkinter import messagebox
-from utils import resource_path
+from core.utils import resource_path
 
 # Função para clicar em uma imagem na tela
 def clicar_imagem(imagem, timeout=5, offset_x=0, offset_y=0):
     inicio = time.time()
     while time.time() - inicio < timeout:
         try:
-            posicao = py.locateCenterOnScreen(resource_path(imagem), confidence=0.8)
+            caminho_img = f"images/{imagem}" if not imagem.startswith("images") else imagem
+            posicao = py.locateCenterOnScreen(resource_path(caminho_img), confidence=0.8)
             if posicao:
                 py.click(posicao.x + offset_x, posicao.y + offset_y)
                 return True

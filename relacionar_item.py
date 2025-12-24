@@ -2,7 +2,7 @@ import pyautogui as py
 import time
 from tkinter import messagebox
 import keyboard
-from utils import resource_path
+from core.utils import resource_path
 
 # Variável global para controlar a interrupção
 interromper = False
@@ -24,7 +24,8 @@ def clicar_imagem(imagem, timeout=5, offset_x=0, offset_y=0, confidence=0.8):
             return False
             
         try:
-            posicao = py.locateCenterOnScreen(resource_path(imagem), confidence=confidence)
+            caminho_img = f"images/{imagem}" if not imagem.startswith("images") else imagem
+            posicao = py.locateCenterOnScreen(resource_path(caminho_img), confidence=confidence)
             if posicao:
                 py.click(posicao.x + offset_x, posicao.y + offset_y)
                 return True

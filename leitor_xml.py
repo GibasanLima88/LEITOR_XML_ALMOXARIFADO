@@ -10,26 +10,27 @@ import keyboard
 import json
 import os
 import threading
-from verificacao_itens_simples import verificar_itens_simples
-from verificacao_itens_pis_cofins import verificar_itens_pis_cofins_regras
+from verificacao.verificacao_itens_simples import verificar_itens_simples
+from verificacao.verificacao_itens_pis_cofins import verificar_itens_pis_cofins_regras
 
 # --- Importação de Estilos (Fase 5 - Light) ---
-import estilos
-from verificacao_itens import verificar_itens
-from cadastro_item import cadastrar_item
+from core import estilos
+from verificacao.verificacao_itens import verificar_itens
 from cadastro_item import cadastrar_item
 from relacionar_item import relacionar
-from utils import resource_path, get_config_path
+from core.utils import resource_path, get_config_path
+from core import updater
+from core.version import VERSION
 
 # Carregar grupos do JSON
 def carregar_grupos():
     # Tenta carregar do arquivo do usuário (editável)
-    caminho_user = get_config_path("grupos.json")
+    caminho_user = get_config_path("json_files/grupos.json")
     if os.path.exists(caminho_user):
         caminho_json = caminho_user
     else:
         # Se não existir, pega o padrão embutido
-        caminho_json = resource_path("grupos.json")
+        caminho_json = resource_path("json_files/grupos.json")
 
     if not os.path.exists(caminho_json):
         messagebox.showerror("Erro", f"Arquivo '{caminho_json}' não encontrado!")
@@ -46,12 +47,12 @@ def carregar_grupos():
 # Carregar desembolsos do JSON
 def carregar_desembolsos():
     # Tenta carregar do arquivo do usuário (editável)
-    caminho_user = get_config_path("desembolsos.json")
+    caminho_user = get_config_path("json_files/desembolsos.json")
     if os.path.exists(caminho_user):
         caminho_json = caminho_user
     else:
         # Se não existir, pega o padrão embutido
-        caminho_json = resource_path("desembolsos.json")
+        caminho_json = resource_path("json_files/desembolsos.json")
         
     if not os.path.exists(caminho_json):
         messagebox.showerror("Erro", f"Arquivo '{caminho_json}' não encontrado!")
@@ -97,7 +98,7 @@ def salvar_lista_json(arquivo, chave_lista, lista):
 
 # Função para salvar grupos e grupos especiais
 def salvar_grupos_json(lista_grupos, lista_especiais):
-    arquivo = get_config_path("grupos.json")
+    arquivo = get_config_path("json_files/grupos.json")
     try:
         dados = {
             "grupos": sorted(lista_grupos, key=str.casefold),
@@ -113,7 +114,7 @@ def salvar_grupos_json(lista_grupos, lista_especiais):
 # --- FUNÇÕES PARA CONVERSÃO DE UNIDADES (FASE 4) ---
 def carregar_unidades_conversao():
     # 1. Tentar ler do arquivo do usuário (configuração persistente)
-    caminho_user = get_config_path("conversao_unidades.json")
+    caminho_user = get_config_path("json_files/conversao_unidades.json")
     if os.path.exists(caminho_user):
         try:
             with open(caminho_user, "r", encoding="utf-8") as f:
@@ -122,7 +123,7 @@ def carregar_unidades_conversao():
             print(f"Erro ao ler config do usuário: {e}")
 
     # 2. Tentar ler do bundle (padrão embutido no EXE)
-    caminho_bundle = resource_path("conversao_unidades.json")
+    caminho_bundle = resource_path("json_files/conversao_unidades.json")
     if os.path.exists(caminho_bundle):
         try:
             with open(caminho_bundle, "r", encoding="utf-8") as f:
@@ -153,7 +154,7 @@ def carregar_unidades_conversao():
 
 def salvar_unidades_conversao(dados):
     # Sempre salvar no caminho do usuário (persistente)
-    caminho_json = get_config_path("conversao_unidades.json")
+    caminho_json = get_config_path("json_files/conversao_unidades.json")
     try:
         with open(caminho_json, "w", encoding="utf-8") as f:
             json.dump(dados, f, indent=4, ensure_ascii=False)
@@ -440,7 +441,7 @@ def abrir_gerenciador(titulo, arquivo, chave_json, combobox_alvo):
 
 # --- Editor de Regras Fiscais ---
 def abrir_editor_regras(perfil_alvo="verificacao_padrao"):
-    caminho_json = "regras_fiscais.json"
+    caminho_json = "json_files/regras_fiscais.json"
     
     def carregar_dados():
         if not os.path.exists(caminho_json):
@@ -469,7 +470,7 @@ def abrir_editor_regras(perfil_alvo="verificacao_padrao"):
         regra_atual = regras_perfil[indice_editar] if indice_editar is not None else {"entrada": {"cfop": [], "cst": []}, "saida": {}}
 
         # --- Entradas ---
-        frame_entrada = tk.LabelFrame(janela_regra, text="Condições (Entrada)", padx=5, pady=5)
+        frame_entrada = tk.LabelFrame(janela_regra, text="SE a Nota Fiscal tiver (Entrada):", padx=5, pady=5)
         frame_entrada.pack(fill="x", padx=10, pady=5)
 
         tk.Label(frame_entrada, text="CFOPs (separar por vírgula):").pack(anchor="w")
@@ -483,50 +484,73 @@ def abrir_editor_regras(perfil_alvo="verificacao_padrao"):
         entry_cst_in.insert(0, ", ".join(regra_atual.get("entrada", {}).get("cst", [])))
 
         # --- Saídas ---
-        frame_saida = tk.LabelFrame(janela_regra, text="Ações (Saída - O que o robô digita)", padx=5, pady=5)
+        # --- Saídas ---
+        frame_saida = tk.LabelFrame(janela_regra, text="ENTÃO o Robô deve preencher (Saída):", padx=5, pady=5)
         frame_saida.pack(fill="x", padx=10, pady=5)
 
-        tk.Label(frame_saida, text="CFOP Saída:").grid(row=0, column=0, sticky="w")
-        entry_cfop_out = tk.Entry(frame_saida)
+        # --- Frame Principal da Saída (para organizar Grid vs Templates) ---
+        frame_campos_saida = tk.Frame(frame_saida)
+        frame_campos_saida.pack(side="left", fill="both", expand=True)
+
+        tk.Label(frame_campos_saida, text="CFOP Saída:").grid(row=0, column=0, sticky="w")
+        entry_cfop_out = tk.Entry(frame_campos_saida)
         entry_cfop_out.grid(row=0, column=1, sticky="e")
         entry_cfop_out.insert(0, regra_atual.get("saida", {}).get("cfop", ""))
 
-        tk.Label(frame_saida, text="CST Saída:").grid(row=1, column=0, sticky="w")
-        entry_cst_out = tk.Entry(frame_saida)
+        tk.Label(frame_campos_saida, text="CST Saída:").grid(row=1, column=0, sticky="w")
+        entry_cst_out = tk.Entry(frame_campos_saida)
         entry_cst_out.grid(row=1, column=1, sticky="e")
         entry_cst_out.insert(0, regra_atual.get("saida", {}).get("cst", ""))
 
-        tk.Label(frame_saida, text="PIS:").grid(row=2, column=0, sticky="w")
-        entry_pis = tk.Entry(frame_saida)
+        tk.Label(frame_campos_saida, text="PIS:").grid(row=2, column=0, sticky="w")
+        entry_pis = tk.Entry(frame_campos_saida)
         entry_pis.grid(row=2, column=1, sticky="e")
         entry_pis.insert(0, regra_atual.get("saida", {}).get("pis", ""))
 
-        tk.Label(frame_saida, text="COFINS:").grid(row=3, column=0, sticky="w")
-        entry_cofins = tk.Entry(frame_saida)
+        tk.Label(frame_campos_saida, text="COFINS:").grid(row=3, column=0, sticky="w")
+        entry_cofins = tk.Entry(frame_campos_saida)
         entry_cofins.grid(row=3, column=1, sticky="e")
         entry_cofins.insert(0, regra_atual.get("saida", {}).get("cofins", ""))
 
-        tk.Label(frame_saida, text="IPI:").grid(row=4, column=0, sticky="w")
-        entry_ipi = tk.Entry(frame_saida)
+        tk.Label(frame_campos_saida, text="IPI:").grid(row=4, column=0, sticky="w")
+        entry_ipi = tk.Entry(frame_campos_saida)
         entry_ipi.grid(row=4, column=1, sticky="e")
         entry_ipi.insert(0, regra_atual.get("saida", {}).get("ipi", ""))
 
         # Checkboxes para Isento/Integral
         var_isento = tk.BooleanVar(value=regra_atual.get("saida", {}).get("clicar_isento", False))
-        tk.Checkbutton(frame_saida, text="Clicar ISENTO", variable=var_isento).grid(row=5, column=0, columnspan=2, sticky="w")
+        tk.Checkbutton(frame_campos_saida, text="Clicar ISENTO", variable=var_isento).grid(row=5, column=0, columnspan=2, sticky="w")
 
         var_integral = tk.BooleanVar(value=regra_atual.get("saida", {}).get("clicar_integral", False))
-        tk.Checkbutton(frame_saida, text="Clicar INTEGRAL", variable=var_integral).grid(row=6, column=0, columnspan=2, sticky="w")
+        tk.Checkbutton(frame_campos_saida, text="Clicar INTEGRAL", variable=var_integral).grid(row=6, column=0, columnspan=2, sticky="w")
         
-        # --- Filtro Condicional (Desembolso) ---
-        frame_cond = tk.LabelFrame(janela_regra, text="Condição Extra (Opcional)", padx=5, pady=5)
-        frame_cond.pack(fill="x", padx=10, pady=5)
+        # --- Templates (Botões Rápidos) ---
+        frame_templates = tk.Frame(frame_saida, padx=10, borderwidth=1, relief="sunken")
+        frame_templates.pack(side="right", fill="y", padx=5, pady=5)
         
-        tk.Label(frame_cond, text="Filtro Desembolso (ex: cafe da manha):").pack(anchor="w")
-        entry_desembolso = tk.Entry(frame_cond)
-        entry_desembolso.pack(fill="x")
-        entry_desembolso.insert(0, regra_atual.get("entrada", {}).get("desembolso", ""))
+        tk.Label(frame_templates, text="Modelos Rápidos:", font=("Arial", 9, "bold")).pack(anchor="w", pady=(0,5))
 
+        def aplicar_template(pis, cofins, ipi, isento, integral):
+            entry_pis.delete(0, tk.END); entry_pis.insert(0, pis)
+            entry_cofins.delete(0, tk.END); entry_cofins.insert(0, cofins)
+            entry_ipi.delete(0, tk.END); entry_ipi.insert(0, ipi)
+            var_isento.set(isento)
+            var_integral.set(integral)
+
+        tk.Button(frame_templates, text="ISENTO (73/73/49)", 
+                  command=lambda: aplicar_template("73", "73", "49", True, False), 
+                  bg="#e1f5fe", width=20, anchor="w").pack(fill="x", pady=2)
+                  
+        tk.Button(frame_templates, text="INTEGRAL (50/50/49)", 
+                  command=lambda: aplicar_template("50", "50", "49", False, True), 
+                  bg="#e8f5e9", width=20, anchor="w").pack(fill="x", pady=2)
+                  
+        tk.Button(frame_templates, text="USO/CONS (98/98/49)", 
+                  command=lambda: aplicar_template("98", "98", "49", True, False), 
+                  bg="#fff9c4", width=20, anchor="w").pack(fill="x", pady=2)
+
+        tk.Label(frame_templates, text="(Preenche campos automaticamente)", font=("Arial", 7)).pack(pady=5)
+        
         def salvar_regra():
             # Processar Entradas
             cfops_in = [x.strip() for x in entry_cfop_in.get().split(",") if x.strip()]
@@ -548,8 +572,6 @@ def abrir_editor_regras(perfil_alvo="verificacao_padrao"):
                 "cfop": cfops_in, 
                 "cst": csts_in
             }
-            if entry_desembolso.get().strip():
-                nova_entrada["desembolso"] = entry_desembolso.get().strip()
                 
             nova_regra = {
                 "entrada": nova_entrada,
@@ -572,23 +594,54 @@ def abrir_editor_regras(perfil_alvo="verificacao_padrao"):
 
     janela = tk.Toplevel()
     janela.title(f"Editor de Regras - {perfil_alvo}")
-    janela.geometry("600x400")
+    janela.geometry("900x500") # Janela maior para caber a tabela
 
-    listbox = tk.Listbox(janela, width=80, height=15)
-    listbox.pack(padx=10, pady=10)
+    # Frame para a tabela
+    frame_lista = tk.Frame(janela)
+    frame_lista.pack(fill="both", expand=True, padx=10, pady=10)
+
+    # Configuração da Treeview
+    # Configuração da Treeview
+    colunas = ("entrada", "saida")
+    tree = ttk.Treeview(frame_lista, columns=colunas, show="headings", selectmode="browse")
+    
+    tree.heading("entrada", text="Condições de Entrada (CFOP / CST)")
+    tree.heading("saida", text="Ação de Saída")
+    
+    tree.column("entrada", minwidth=300, width=400)
+    tree.column("saida", minwidth=250, width=300)
+
+    scrollbar = ttk.Scrollbar(frame_lista, orient="vertical", command=tree.yview)
+    tree.configure(yscrollcommand=scrollbar.set)
+    
+    tree.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
 
     dados = carregar_dados()
     
     def atualizar_lista():
-        listbox.delete(0, tk.END)
+        # Limpa tabela
+        for item in tree.get_children():
+            tree.delete(item)
+            
+        regras = dados.get(perfil_alvo, [])
         regras = dados.get(perfil_alvo, [])
         for i, r in enumerate(regras):
-            cfops = ",".join(r.get("entrada", {}).get("cfop", []))
-            csts = ",".join(r.get("entrada", {}).get("cst", []))
-            filtro = r.get("entrada", {}).get("desembolso", "")
-            filtro_str = f" [FILTRO: {filtro}]" if filtro else ""
-            saida_cfop = r.get("saida", {}).get("cfop", "?")
-            listbox.insert(tk.END, f"{i+1}. SE CFOP=[{cfops}] CST=[{csts}]{filtro_str} -> DIGITA {saida_cfop}...")
+            cfops = ", ".join(r.get("entrada", {}).get("cfop", []))
+            csts = ", ".join(r.get("entrada", {}).get("cst", []))
+            entrada_str = f"CFOP: [{cfops}]  |  CST: [{csts}]"
+            
+            s = r.get("saida", {})
+            # Detalhes da saída
+            detalhes = []
+            if s.get("cfop"): detalhes.append(f"CFOP {s['cfop']}")
+            if s.get("cst"): detalhes.append(f"CST {s['cst']}")
+            if s.get("pis"): detalhes.append(f"PIS {s['pis']}")
+            
+            saida_str = " / ".join(detalhes)
+            
+            # Usa o índice 'i' como ID para facilitar edição/removação
+            tree.insert("", "end", iid=str(i), values=(entrada_str, saida_str))
 
     atualizar_lista()
 
@@ -599,29 +652,69 @@ def abrir_editor_regras(perfil_alvo="verificacao_padrao"):
         abrir_janela_regra(dados)
     
     def editar():
-        sel = listbox.curselection()
+        sel = tree.selection()
         if not sel: return
-        abrir_janela_regra(dados, sel[0])
+        idx = int(sel[0]) # Recupera o ID (que é o índice)
+        abrir_janela_regra(dados, idx)
 
     def remover():
-        sel = listbox.curselection()
+        sel = tree.selection()
         if not sel: return
+        idx = int(sel[0])
         if messagebox.askyesno("Confirmar", "Remover regra selecionada?"):
             regras = dados.get(perfil_alvo, [])
-            del regras[sel[0]]
+            del regras[idx]
             dados[perfil_alvo] = regras
             salvar_dados(dados)
             atualizar_lista()
 
-    tk.Button(frame_btns, text="Nova Regra", command=nova).pack(side="left", padx=5)
-    tk.Button(frame_btns, text="Editar", command=editar).pack(side="left", padx=5)
-    tk.Button(frame_btns, text="Remover", command=remover).pack(side="left", padx=5)
+    tk.Button(frame_btns, text="Nova Regra", command=nova, bg="#90ee90").pack(side="left", padx=5)
+    tk.Button(frame_btns, text="Editar Regra", command=editar, bg="#add8e6").pack(side="left", padx=5)
+    tk.Button(frame_btns, text="Remover Regra", command=remover, bg="#ffcccb").pack(side="left", padx=5)
 
 def clique_gerenciar_desembolso():
-    abrir_gerenciador("Gerenciar Desembolsos", "desembolsos.json", "desembolsos", combo_desembolso)
+    abrir_gerenciador("Gerenciar Desembolsos", "json_files/desembolsos.json", "desembolsos", combo_desembolso)
+
+def carregar_config():
+    caminho_config = get_config_path("json_files/config.json")
+    if not os.path.exists(caminho_config):
+        return {"velocidade": 0.2} # Valor padrão
+    try:
+        with open(caminho_config, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {"velocidade": 0.2}
+
+def salvar_config(dados):
+    caminho_config = get_config_path("json_files/config.json")
+    try:
+        with open(caminho_config, "w", encoding="utf-8") as f:
+            json.dump(dados, f, indent=4)
+    except Exception as e:
+        print(f"Erro ao salvar config: {e}")
 
 def clique_gerenciar_grupo():
-    abrir_gerenciador("Gerenciar Grupos de Produto", "grupos.json", "grupos", combo_grupo_produto)
+    abrir_gerenciador("Gerenciar Grupos de Produto", "json_files/grupos.json", "grupos", combo_grupo_produto)
+
+def abrir_ajuste_velocidade():
+    janela = tk.Toplevel()
+    janela.title("Ajuste de Velocidade")
+    janela.geometry("300x150")
+    estilos.aplicar_tema_janela(janela)
+
+    tk.Label(janela, text="Ajuste a velocidade da automação:", font=("Arial", 10)).pack(pady=10)
+    
+    # Slider vinculado à variábel global var_velocidade
+    scale = tk.Scale(janela, from_=0.2, to=1.0, resolution=0.1, orient=tk.HORIZONTAL, length=200, variable=var_velocidade)
+    scale.pack(pady=10)
+    
+    def fechar_e_salvar():
+        # Salva a configuração ao fechar
+        dados = {"velocidade": var_velocidade.get()}
+        salvar_config(dados)
+        janela.destroy()
+
+    tk.Button(janela, text="OK", command=fechar_e_salvar, width=10, bg="#90ee90").pack(pady=5)
 
 entry_cst_widgets = []
 entry_cfop_widgets = []
@@ -660,14 +753,14 @@ def alterar_desembolso(i):
         print(f"Desembolso ajustado: {desembolso}")  # Depuração
         if checar_interrupcao():
                 return
-        localizacao = py.locateOnScreen(resource_path('seta.png'), confidence=0.8)
+        localizacao = py.locateOnScreen(resource_path('images/seta.png'), confidence=0.8)
         if localizacao:
             centro = py.center(localizacao)
             py.click(centro, clicks=2)
             time.sleep(1)
             if checar_interrupcao():
                 return
-        rateio = py.locateOnScreen(resource_path('rateio.png'), confidence=0.8)
+        rateio = py.locateOnScreen(resource_path('images/rateio.png'), confidence=0.8)
         if rateio:
             rateio_centro = py.center(rateio)
             py.click(rateio_centro)
@@ -683,14 +776,14 @@ def alterar_desembolso(i):
             py.click(x=1313, y=320)  
             if checar_interrupcao():
                 return
-        confirmar = py.locateOnScreen(resource_path('confirmar2.png'), confidence=0.8)
+        confirmar = py.locateOnScreen(resource_path('images/confirmar2.png'), confidence=0.8)
         if confirmar:
             confirmar_centro = py.center(confirmar)
             py.click(confirmar_centro) 
             time.sleep(1)
             if checar_interrupcao():
                 return
-        localizacao = py.locateOnScreen(resource_path('seta.png'), confidence=0.8)
+        localizacao = py.locateOnScreen(resource_path('images/seta.png'), confidence=0.8)
         if localizacao:
             centro = py.center(localizacao)
             py.click(centro)
@@ -707,7 +800,7 @@ def alterar_desembolso(i):
 def clicar_rateio(desembolso2):
     desembolso2 = combo_desembolso.get()
     # Localiza e clica no botão "rateio"
-    rateio = py.locateOnScreen(resource_path('rateio.png'), confidence=0.8)
+    rateio = py.locateOnScreen(resource_path('images/rateio.png'), confidence=0.8)
     if rateio:
         rateio_centro = py.center(rateio)
         py.click(rateio_centro)
@@ -1022,12 +1115,21 @@ def filtrar_grupo_produto(event):
             
 # Configuração da janela principal
 root = tk.Tk()
-root.title("Leitor de XML de NF v3.0 290525")
+
+# Carregar configuração inicial
+config_inicial = carregar_config()
+velocidade_inicial = config_inicial.get("velocidade", 0.2)
+var_velocidade = tk.DoubleVar(value=velocidade_inicial)
+
+root.title(f"Leitor de XML de NF v{VERSION}")
 root.geometry("1300x700")
+
+# Iniciar verificação de atualizações (silenciosa)
+updater.verificar_atualizacao_silenciosa()
 
 # --- Ícone da Janela ---
 try:
-    root.iconbitmap(resource_path("icone.ico"))
+    root.iconbitmap(resource_path("images/icone.ico"))
 except Exception as e:
     print(f"Erro ao carregar ícone: {e}")
 
@@ -1043,6 +1145,8 @@ menu_cadastros = tk.Menu(menubar, tearoff=0)
 menu_cadastros.add_command(label="Gerenciar Desembolsos", command=clique_gerenciar_desembolso)
 menu_cadastros.add_command(label="Gerenciar Grupos de Produto", command=clique_gerenciar_grupo)
 menu_cadastros.add_command(label="Gerenciar Conversão de Unidades", command=abrir_gerenciador_unidades)
+menu_cadastros.add_separator()
+menu_cadastros.add_command(label="Ajuste de Velocidade", command=abrir_ajuste_velocidade)
 
 # Submenu Regras Fiscais
 menu_regras = tk.Menu(menu_cadastros, tearoff=0)
@@ -1052,6 +1156,11 @@ menu_regras.add_command(label="Regras Verificar PIS/COFINS", command=lambda: abr
 menu_cadastros.add_cascade(label="Regras Fiscais", menu=menu_regras)
 
 menubar.add_cascade(label="Cadastros", menu=menu_cadastros)
+
+# Menu Ajuda
+menu_ajuda = tk.Menu(menubar, tearoff=0)
+menu_ajuda.add_command(label="Verificar Atualizações", command=updater.verificar_atualizacao_manual)
+menubar.add_cascade(label="Ajuda", menu=menu_ajuda)
 # ----------------
 
 
@@ -1096,9 +1205,14 @@ estilos.estilizar_botao(btn_verificar_simples, "destaque")
 btn_verificar_simples.grid(row=0, column=6, padx=5, pady=5)
 
 # btn_verificar = tk.Button(frame_caminho, text="Verificar Itens", command=verificar_itens)
-btn_verificar_pis_cofins = tk.Button(frame_caminho, text="Verificar KMR,KJP,HPB,KPL", command=lambda: verificar_itens_pis_cofins_regras(entry_ncm_widgets, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao, clicar_rateio, vars_uso_consumo))
+btn_verificar_pis_cofins = tk.Button(frame_caminho, text="Verificar KMR,KJP,HPB,KPL", command=lambda: verificar_itens_pis_cofins_regras(entry_ncm_widgets, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao, clicar_rateio, vars_uso_consumo, var_velocidade.get()))
 estilos.estilizar_botao(btn_verificar_pis_cofins, "amarelo")
 btn_verificar_pis_cofins.grid(row=0, column=7, padx=5, pady=5)
+
+# Atualizando comandos dos outros botões para incluir velocidade
+btn_verificar.config(command=lambda: verificar_itens(entry_ncm_widgets, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao, clicar_rateio, vars_uso_consumo, var_velocidade.get()))
+
+btn_verificar_simples.config(command=lambda: verificar_itens_simples(entry_ncm_widgets, combo_desembolso, entry_cfop_widgets, entry_cst_widgets, checar_interrupcao, clicar_rateio, vars_uso_consumo, var_velocidade.get()))
 
 
 # Novo Label "Desembolso" e Combobox para selecionar "Restaurante" ou "Café da manhã"
