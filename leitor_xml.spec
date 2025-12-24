@@ -1,25 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
-import glob
-import os
 
-datas = []
-# Include all pngs
-for file in glob.glob("images/*.png"):
-    datas.append((file, "images"))
-
-# Include all jsons
-for file in glob.glob("json_files/*.json"):
-    datas.append((file, "json_files"))
-
-# Include icon
-if os.path.exists('images/icone.ico'):
-    datas.append(('images/icone.ico', 'images'))
 
 a = Analysis(
     ['leitor_xml.py'],
     pathex=[],
     binaries=[],
-    datas=datas,
+    datas=[('*.png', '.'), ('*.json', '.'), ('icone.ico', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -36,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='LeitorXML_v3',
+    name='leitor_xml',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -49,5 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['images/icone.ico'],
+    icon=['icone.ico'],
 )

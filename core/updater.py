@@ -14,7 +14,7 @@ GITHUB_API_URL = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/release
 
 # MODO DE TESTE LOCAL
 # Se True, simula uma atualização usando arquivos locais.
-TEST_MODE = True
+TEST_MODE = False
 TEST_VERSION = "9.9.9" # Versão simulada maior que a atual
 TEST_FILE_PATH = "leitor_xml_versao_teste.exe" # Arquivo simulado para download
 
